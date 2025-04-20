@@ -125,4 +125,26 @@ class JobApplicationRepository implements JobApplicationRepositoryInterface
         
         return $jobApplication->delete();
     }
+
+    /**
+     * Get recent job applications.
+     *
+     * @param int $limit Number of applications to retrieve
+     * @param int|null $recruiterId Optional recruiter ID to filter by
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getRecentApplications(int $limit = 5, ?int $recruiterId = null): Collection
+    {
+        $query = JobApplication::with(['jobOffer', 'user'])
+            ->orderBy('created_at', 'desc');
+        
+        if ($recruiterId) {
+            // Filter by job offers created by this recruiter
+            $query->whereHas('jobOffer', function ($q) use ($recruiterId) {
+                $q->where('user_id', $recruiterId);
+            });
+        }
+        
+        return $query->limit($limit)->get();
+    }
 }

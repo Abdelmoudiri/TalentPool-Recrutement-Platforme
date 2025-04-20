@@ -55,6 +55,7 @@ Route::middleware('auth:api')->group(function () {
         
         // Common routes
         Route::get('/statistics', [JobApplicationController::class, 'statistics']);
+        Route::get('/recent', [JobApplicationController::class, 'getRecentApplications']);
         Route::get('/{applicationId}', [JobApplicationController::class, 'show']);
     });
 });

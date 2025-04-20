@@ -342,4 +342,32 @@ class JobApplicationService
             'status_counts' => $statusCounts,
         ];
     }
+    
+    /**
+     * Get recent job applications.
+     *
+     * @param int $limit Number of applications to retrieve
+     * @return Collection|null
+     */
+    public function getRecentApplications(int $limit = 5): ?Collection
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return null;
+        }
+        
+        // For recruiters, return their own job offers' applications
+        if ($user->isRecruiter()) {
+            return $this->jobApplicationRepository->getRecentApplications($limit, $user->id);
+        }
+        
+        // For admins, return all recent applications
+        if ($user->isAdmin()) {
+            return $this->jobApplicationRepository->getRecentApplications($limit);
+        }
+        
+        // For candidates, they should not access this (they use getMyApplications instead)
+        return null;
+    }
 }

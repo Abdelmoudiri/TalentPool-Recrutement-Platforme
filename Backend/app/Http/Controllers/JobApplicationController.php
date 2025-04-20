@@ -514,4 +514,76 @@ class JobApplicationController extends Controller
         
         return response()->json(['statistics' => $statistics]);
     }
+    
+    /**
+     * Get recent job applications.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     * 
+     * @OA\Get(
+     *     path="/applications/recent",
+     *     operationId="getRecentApplications",
+     *     tags={"Job Applications"},
+     *     summary="Get recent job applications",
+     *     description="Returns recent job applications for dashboard display (recruiters and admins only)",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         required=false,
+     *         description="Maximum number of applications to return",
+     *         @OA\Schema(type="integer", default=5)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(
+     *                 property="applications",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="job_offer_id", type="integer", example=1),
+     *                     @OA\Property(property="user_id", type="integer", example=3),
+     *                     @OA\Property(property="status", type="string", example="pending"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(
+     *                         property="job_offer",
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="title", type="string", example="Senior PHP Developer")
+     *                     ),
+     *                     @OA\Property(
+     *                         property="user",
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=3),
+     *                         @OA\Property(property="name", type="string", example="John Doe")
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized access",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="Unauthorized access")
+     *         )
+     *     )
+     * )
+     */
+    public function getRecentApplications(Request $request): JsonResponse
+    {
+        $limit = $request->input('limit', 5);
+        
+        $applications = $this->jobApplicationService->getRecentApplications((int)$limit);
+        
+        if ($applications === null) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+        
+        return response()->json(['applications' => $applications]);
+    }
 }

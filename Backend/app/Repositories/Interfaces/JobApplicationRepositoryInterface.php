@@ -79,4 +79,13 @@ interface JobApplicationRepositoryInterface
      * @return bool
      */
     public function delete(int $id): bool;
+    
+    /**
+     * Get recent job applications.
+     *
+     * @param int $limit Number of applications to retrieve
+     * @param int|null $recruiterId Optional recruiter ID to filter by
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getRecentApplications(int $limit = 5, ?int $recruiterId = null): Collection;
 }
