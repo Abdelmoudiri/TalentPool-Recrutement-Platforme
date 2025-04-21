@@ -1,15 +1,14 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// Create axios instance with default config
 const api = axios.create({
-  baseURL: '/api', // This will use the Vite proxy configuration
+  baseURL: '/api', 
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest' // Required for Laravel to recognize the request as AJAX
+    'X-Requested-With': 'XMLHttpRequest' 
   },
-  withCredentials: true // This is needed to handle cookies for CSRF token
+  withCredentials: true 
 });
 
 // Token management functions

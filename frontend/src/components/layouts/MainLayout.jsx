@@ -28,13 +28,8 @@ import {
   ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
 
-// Drawer width for desktop view
 const drawerWidth = 240;
 
-/**
- * Main layout component with responsive drawer and app bar
- * Used for all authenticated routes
- */
 export default function MainLayout() {
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
