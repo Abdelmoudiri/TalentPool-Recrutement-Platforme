@@ -116,8 +116,8 @@ export default function JobOffersList() {
         const response = await jobOffersAPI.getAll(params);
         
         // Set job offers and pagination info
-        setJobOffers(response.data.data || []);
-        setTotalPages(response.data.meta?.last_page || 1);
+        setJobOffers(response.data.job_offers || []);
+        setTotalPages(1); // Backend doesn't support pagination yet
       } catch (err) {
         console.error('Error fetching job offers:', err);
         setError('Impossible de charger les offres d\'emploi.');

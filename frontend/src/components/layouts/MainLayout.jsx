@@ -36,8 +36,9 @@ export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   
-  // Check if user is a recruiter
+  // Check user roles
   const isRecruiter = user?.role === 'recruiter';
+  const isAdmin = user?.role === 'admin';
   
   // Handle drawer toggle
   const handleDrawerToggle = () => {
@@ -66,6 +67,13 @@ export default function MainLayout() {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Job Offers', icon: <JobIcon />, path: '/job-offers' },
   ];
+  
+  // Add admin-specific items
+  if (isAdmin) {
+    navigationItems.push(
+      { text: 'Admin', icon: <PersonIcon />, path: '/admin' },
+    );
+  }
   
   // Add recruiter-specific items
   if (isRecruiter) {
@@ -133,7 +141,7 @@ export default function MainLayout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {isRecruiter ? 'Recruiter Dashboard' : 'Candidate Dashboard'}
+            {isAdmin ? 'Admin Dashboard' : isRecruiter ? 'Recruiter Dashboard' : 'Candidate Dashboard'}
           </Typography>
           
           {/* User Profile Menu */}

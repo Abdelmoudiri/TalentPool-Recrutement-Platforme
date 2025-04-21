@@ -10,6 +10,8 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import Admin from './pages/Admin';
 import JobOffersList from './pages/job-offers/JobOffersList';
 import JobOfferDetails from './pages/job-offers/JobOfferDetails';
 import JobOfferForm from './pages/job-offers/JobOfferForm';
@@ -17,10 +19,8 @@ import ApplicationsList from './pages/applications/ApplicationsList';
 import ApplicationDetails from './pages/applications/ApplicationDetails';
 import NotFound from './pages/NotFound';
 
-// Layouts
 import MainLayout from './components/layouts/MainLayout';
 
-// Create MUI theme
 const theme = createTheme({
   palette: {
     primary: {
@@ -32,21 +32,17 @@ const theme = createTheme({
   },
 });
 
-// Protected route component
 function ProtectedRoute({ children, requiredRole }) {
   const { isAuthenticated, user, isLoading } = useAuth();
   
-  // Show loading if auth state is still being determined
   if (isLoading) {
     return <div>Loading...</div>;
   }
   
-  // Check if user is authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
-  // Check if role requirement is met (if specified)
   if (requiredRole && user?.role !== requiredRole) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -76,6 +72,16 @@ function App() {
                 {/* Dashboard - common to all users */}
                 <Route index element={<Dashboard />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                
+                {/* Profile page */}
+                <Route path="profile" element={<Profile />} />
+                
+                {/* Admin dashboard - admin only */}
+                <Route path="admin" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Admin />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Job offers routes */}
                 <Route path="job-offers">
