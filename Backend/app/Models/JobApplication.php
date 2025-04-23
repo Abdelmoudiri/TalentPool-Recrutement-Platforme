@@ -21,9 +21,27 @@ class JobApplication extends Model
         'status',
         'cover_letter',
         'cv_path',
-        'notes',
+        'recruiter_notes', // Correction du nom de la colonne
         'last_status_change',
     ];
+    
+    /**
+     * Alias pour recruiter_notes.
+     * Pour maintenir la compatibilité avec le code existant.
+     */
+    public function getNotesAttribute()
+    {
+        return $this->recruiter_notes;
+    }
+    
+    /**
+     * Alias pour recruiter_notes.
+     * Pour maintenir la compatibilité avec le code existant.
+     */
+    public function setNotesAttribute($value)
+    {
+        $this->attributes['recruiter_notes'] = $value;
+    }
 
     /**
      * The attributes that should be cast.

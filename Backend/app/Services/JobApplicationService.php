@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Models\JobApplication;
 use App\Models\JobOffer;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth as AuthFacade;
 use App\Repositories\Interfaces\JobApplicationRepositoryInterface;
 use App\Repositories\Interfaces\JobOfferRepositoryInterface;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -38,7 +38,7 @@ class JobApplicationService
      */
     public function getApplicationsForJobOffer(int $jobOfferId): ?Collection
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         $jobOffer = $this->jobOfferRepository->find($jobOfferId);
         
         if (!$user || !$jobOffer || (!$user->isAdmin() && $jobOffer->user_id !== $user->id)) {
@@ -55,7 +55,7 @@ class JobApplicationService
      */
     public function getMyApplications(): ?Collection
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         
         if (!$user || !$user->isCandidate()) {
             return null;
@@ -72,34 +72,18 @@ class JobApplicationService
      */
     public function findApplication(int $id): ?JobApplication
     {
-        $application = $this->jobApplicationRepository->find($id);
-        $user = Auth::user();
+        // Get application with all related data in a single query
+        $application = JobApplication::with(['jobOffer', 'user'])->find($id);
+        $user = AuthFacade::user();
         
         if (!$user || !$application) {
             return null;
         }
         
         // Only allow access if user is admin, the candidate who applied, or the recruiter who posted the job
-        $jobOffer = $this->jobOfferRepository->find($application->job_offer_id);
-        
         if ($user->isAdmin() || 
             ($user->isCandidate() && $application->user_id === $user->id) || 
-            ($user->isRecruiter() && $jobOffer && $jobOffer->user_id === $user->id)) {
-            
-            // Ensure relationships are loaded
-            if (!$application->relationLoaded('jobOffer')) {
-                $application->load('jobOffer');
-            }
-            
-            if (!$application->relationLoaded('candidate')) {
-                $application->load(['candidate' => function($query) {
-                    $query->select('id', 'name', 'email');
-                }]);
-            }
-            
-            // Add candidate property for frontend compatibility
-            $application->candidate = $application->user;
-            
+            ($user->isRecruiter() && $application->jobOffer && $application->jobOffer->user_id === $user->id)) {
             return $application;
         }
         
@@ -116,7 +100,7 @@ class JobApplicationService
      */
     public function applyForJob(int $jobOfferId, array $data, $cvFile = null): ?JobApplication
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         $jobOffer = $this->jobOfferRepository->find($jobOfferId);
         
         if (!$user || !$user->isCandidate() || !$jobOffer || !$jobOffer->is_active) {
@@ -159,7 +143,7 @@ class JobApplicationService
      */
     public function withdrawApplication(int $id): bool
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         $application = $this->jobApplicationRepository->find($id);
         
         if (!$user || !$application || !$user->isCandidate() || $application->user_id !== $user->id) {
@@ -179,7 +163,7 @@ class JobApplicationService
      */
     public function updateApplicationStatus(int $id, string $status, ?string $notes = null): bool
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         $application = $this->jobApplicationRepository->find($id);
         
         if (!$user || !$application) {
@@ -195,7 +179,7 @@ class JobApplicationService
         
         // Update notes if provided
         if ($notes !== null) {
-            $this->jobApplicationRepository->update($id, ['notes' => $notes]);
+            $this->jobApplicationRepository->update($id, ['recruiter_notes' => $notes]);
         }
         
         // Update status
@@ -219,7 +203,7 @@ class JobApplicationService
      */
     public function getStatistics(string $type, ?int $userId = null): array
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         
         if (!$user) {
             return [];
@@ -366,7 +350,7 @@ class JobApplicationService
      */
     public function getRecentApplications(int $limit = 5): ?Collection
     {
-        $user = Auth::user();
+        $user = AuthFacade::user();
         
         if (!$user) {
             return null;

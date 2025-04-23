@@ -55,11 +55,14 @@ export default function ApplicationDetails() {
   // Check if user is a recruiter
   const isRecruiter = user?.role === 'recruiter';
   
-  // Check if the user is the owner of this application (candidate)
+  // Check if the user is the owner of this application (candidate) - with safe access
   const isOwner = application && !isRecruiter && application.user_id === user?.id;
   
-  // Check if the user is the recruiter for this job offer
-  const isJobRecruiter = application && isRecruiter && application.job_offer && application.job_offer.user_id === user?.id;
+  // Check if the user is the recruiter for this job offer - with safe access
+  const isJobRecruiter = application && isRecruiter && 
+                        application.job_offer && 
+                        typeof application.job_offer === 'object' && 
+                        application.job_offer?.user_id === user?.id;
   
   // Status options
   const statusOptions = [
@@ -83,38 +86,76 @@ export default function ApplicationDetails() {
         setLoading(true);
         setError('');
         
-        const response = await jobApplicationsAPI.getById(applicationId);
-        console.log('Application API response:', response);
+        // Ajouter un timeout plus long
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
         
-        // Handle different response formats
-        const applicationData = response.data.application || response.data;
-        console.log('Application data structure:', applicationData);
-        
-        if (!applicationData) {
-          throw new Error('Données de candidature introuvables');
+        try {
+          const response = await jobApplicationsAPI.getById(applicationId);
+          clearTimeout(timeoutId);
+          
+          console.log('Application API response:', response);
+          
+          // Directly use the data returned from the API
+          const applicationData = response.data;
+          console.log('Application data structure:', applicationData);
+          // Log complet des données brutes pour le débogage
+          console.log('Full raw response data:', JSON.stringify(applicationData, null, 2));
+          
+          if (!applicationData) {
+            throw new Error('Données de candidature introuvables');
+          }
+          
+          // Vérifier si nous avons des données critiques
+          if (!applicationData.id) {
+            console.error('Missing critical data: application ID');
+          }
+          
+          if (!applicationData.job_offer_id) {
+            console.error('Missing critical data: job_offer_id');
+          }
+          
+          // Vérifier si nous avons des données critiques
+          if (!applicationData.id) {
+            console.error('Missing critical data: application ID');
+          }
+          
+          if (!applicationData.job_offer_id) {
+            console.error('Missing critical data: job_offer_id');
+          }
+          
+          // No need for extra processing, the backend already prepared the data structure
+          setApplication(applicationData);
+          
+          // Set initial value for status dialog
+          setNewStatus(applicationData.status || 'pending');
+        } catch (e) {
+          clearTimeout(timeoutId);
+          throw e;
         }
-        
-        // Check if we have the expected properties
-        if (!applicationData.job_offer_id) {
-          console.error('Missing job_offer_id in application data');
-        }
-        
-        // Ensure job_offer and candidate/user objects are properly accessed
-        const processedData = {
-          ...applicationData,
-          job_offer: applicationData.job_offer || {},
-          candidate: applicationData.candidate || applicationData.user || {},
-          user: applicationData.user || applicationData.candidate || {}
-        };
-        
-        console.log('Processed application data:', processedData);
-        setApplication(processedData);
-        
-        // Set initial value for status dialog
-        setNewStatus(processedData.status || 'pending');
       } catch (err) {
         console.error('Error fetching application:', err);
-        const errorMessage = err.response?.data?.error || err.message || 'Impossible de charger les détails de la candidature.';
+        
+        // Add more detailed error info for debugging
+        if (err.response) {
+          console.error('Error response:', err.response.status, err.response.data);
+          
+          // Si l'API a renvoyé un message d'erreur détaillé avec une stack trace, l'afficher dans la console
+          if (err.response.data && err.response.data.stack) {
+            console.error('Server stack trace:', err.response.data.stack);
+          }
+        }
+        
+        let errorMessage = 'Impossible de charger les détails de la candidature.';
+        
+        if (err.response?.data?.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -191,15 +232,42 @@ export default function ApplicationDetails() {
   if (error) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          component={RouterLink} 
-          to="/applications" 
-          sx={{ mt: 2 }}
-        >
-          Retour aux candidatures
-        </Button>
+        <Alert severity="error">
+          {error}
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Note technique : Si cette erreur persiste, veuillez contacter l'administrateur et mentionner qu'il pourrait y avoir un problème avec le chargement des relations entre les modèles.
+          </Typography>
+        </Alert>
+        
+        <Paper elevation={2} sx={{ p: 3, mt: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Solution temporaire
+          </Typography>
+          <Typography variant="body1" paragraph>
+            En attendant la résolution du problème technique, vous pouvez consulter la liste des candidatures et effectuer les actions courantes depuis là-bas.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            <strong>Actions rapides :</strong> Si vous êtes recruteur, vous pouvez accepter ou refuser les candidatures directement depuis la liste sans avoir à accéder aux détails.
+          </Typography>
+          <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+            <Button 
+              variant="contained"
+              startIcon={<ArrowBackIcon />} 
+              component={RouterLink} 
+              to="/applications"
+            >
+              Voir la liste des candidatures
+            </Button>
+            
+            <Button 
+              variant="outlined"
+              component={RouterLink} 
+              to="/dashboard"
+            >
+              Retour au tableau de bord
+            </Button>
+          </Box>
+        </Paper>
       </Container>
     );
   }
@@ -315,18 +383,18 @@ export default function ApplicationDetails() {
                 </Typography>
                 
                 <Typography variant="h5" gutterBottom>
-                  {application.job_offer?.title || 'Titre non disponible'}
+                  {application?.job_offer?.title || 'Titre non disponible'}
                 </Typography>
                 
                 <Typography variant="body1" color="text.secondary" gutterBottom>
-                  {application.job_offer?.company_name || 'Entreprise non disponible'}
+                  {application?.job_offer?.company_name || 'Entreprise non disponible'}
                 </Typography>
                 
                 <Typography variant="body2" paragraph>
-                  {application.job_offer?.location || 'Lieu non spécifié'} • {application.job_offer?.contract_type || 'Type de contrat non spécifié'}
+                  {application?.job_offer?.location || 'Lieu non spécifié'} • {application?.job_offer?.contract_type || 'Type de contrat non spécifié'}
                 </Typography>
                 
-                {application.job_offer?.id && (
+                {application?.job_offer?.id && (
                   <Button 
                     variant="outlined" 
                     size="small"
@@ -349,11 +417,11 @@ export default function ApplicationDetails() {
                 </Typography>
                 
                 <Typography variant="h5" gutterBottom>
-                  {application.candidate?.name || application.user?.name || 'Nom non disponible'}
+                  {application?.candidate?.name || application?.user?.name || 'Nom non disponible'}
                 </Typography>
                 
                 <Typography variant="body1" color="text.secondary" gutterBottom>
-                  {application.candidate?.email || application.user?.email || 'Email non disponible'}
+                  {application?.candidate?.email || application?.user?.email || 'Email non disponible'}
                 </Typography>
                 
                 <Box sx={{ mt: 2 }}>

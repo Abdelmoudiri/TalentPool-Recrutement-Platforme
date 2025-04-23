@@ -140,11 +140,38 @@ const jobApplicationsAPI = {
   withdraw: (applicationId) => api.delete(`/applications/${applicationId}`),
   
   // Recruiter routes
-  getJobOfferApplications: (jobOfferId) => api.get(`/applications/job/${jobOfferId}`),
+  getJobOfferApplications: (jobOfferId) => {
+    // Si jobOfferId est null, récupérer toutes les candidatures du recruteur
+    if (jobOfferId === null) {
+      return api.get('/applications/recent', { params: { limit: 100 } });
+    }
+    return api.get(`/applications/job/${jobOfferId}`);
+  },
   updateStatus: (applicationId, status, notes) => api.put(`/applications/${applicationId}/status`, { status, notes }),
   
   // Common routes
-  getById: (applicationId) => api.get(`/applications/${applicationId}`),
+  getById: (applicationId) => {
+    // Utiliser l'implémentation directe en DB à la place des relations Eloquent
+    return api.get(`/applications/${applicationId}`, {
+      // Add timeout to prevent hanging requests
+      timeout: 20000,
+      // Ajouter un paramètre pour forcer l'utilisation de la méthode directe
+      params: { direct: true }
+    }).catch(error => {
+      // Enhanced error handling
+      if (error.response) {
+        // The request was made and the server responded with a status code outside of 2xx
+        console.error(`Server error ${error.response.status} for application #${applicationId}:`, error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error(`No response for application #${applicationId}:`, error.request);
+      } else {
+        // Something happened in setting up the request
+        console.error(`Error setting up request for application #${applicationId}:`, error.message);
+      }
+      throw error;
+    });
+  },
   getStatistics: () => api.get('/applications/statistics'),
   getRecentApplications: (limit = 5) => api.get('/applications/recent', { params: { limit } }),
 };

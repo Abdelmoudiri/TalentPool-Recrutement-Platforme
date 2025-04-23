@@ -50,35 +50,63 @@ export default function Dashboard() {
         setLoading(true);
         setError('');
         
-        let stats = null;
+        let stats = {};
         let items = [];
         
         // Get statistics based on user role
         if (isRecruiter) {
-          // Recruiter: get job offer statistics
-          const statsResponse = await jobOffersAPI.getStatistics();
-          stats = statsResponse.data.statistics || statsResponse.data;
+          try {
+            // Recruiter: get job offer statistics
+            const statsResponse = await jobOffersAPI.getStatistics();
+            stats = statsResponse.data.statistics || statsResponse.data || {};
+            console.log('Recruiter stats:', stats);
+          } catch (err) {
+            console.error('Error fetching recruiter statistics:', err);
+            stats = {
+              active_offers: 0,
+              total_applications: 0,
+              pending_applications: 0,
+              accepted_applications: 0
+            };
+          }
           
           // For recruiters, fetch recent applications
           try {
             const recentAppsResponse = await jobApplicationsAPI.getRecentApplications(5);
             items = recentAppsResponse.data.applications || recentAppsResponse.data || [];
+            console.log('Recent applications:', items);
           } catch (err) {
             console.error('Error fetching recent applications:', err);
             items = []; // Initialize with empty array to avoid errors
           }
         } else {
-          // Candidate: get application statistics
-          const statsResponse = await jobApplicationsAPI.getStatistics();
-          stats = statsResponse.data.statistics || statsResponse.data;
+          try {
+            // Candidate: get application statistics
+            const statsResponse = await jobApplicationsAPI.getStatistics();
+            stats = statsResponse.data.statistics || statsResponse.data || {};
+            console.log('Candidate stats:', stats);
+          } catch (err) {
+            console.error('Error fetching candidate statistics:', err);
+            stats = {
+              total_applications: 0,
+              reviewing_applications: 0,
+              accepted_applications: 0
+            };
+          }
           
-          // Get recent job offers
-          const recentResponse = await jobOffersAPI.getAll({ limit: 5 });
-          items = recentResponse.data.data;
+          try {
+            // Get recent job offers
+            const recentResponse = await jobOffersAPI.getAll({ limit: 5 });
+            items = recentResponse.data.data || recentResponse.data || [];
+            console.log('Recent job offers:', items);
+          } catch (err) {
+            console.error('Error fetching recent job offers:', err);
+            items = [];
+          }
         }
         
         setStatistics(stats);
-        setRecentItems(items);
+        setRecentItems(Array.isArray(items) ? items : []);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError('Impossible de charger les données du tableau de bord');
@@ -123,7 +151,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} md={3}>
             <StatCard 
               title="Offres actives" 
-              value={statistics?.activeJobOffers || 0}
+              value={statistics?.active_offers || statistics?.activeJobOffers || 0}
               icon={<WorkIcon />} 
               color="#1976d2"
             />
@@ -131,7 +159,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} md={3}>
             <StatCard 
               title="Candidatures totales" 
-              value={statistics?.totalApplications || 0}
+              value={statistics?.total_applications || statistics?.totalApplications || 0}
               icon={<PersonIcon />} 
               color="#2e7d32"
             />
@@ -139,7 +167,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} md={3}>
             <StatCard 
               title="Candidatures en attente" 
-              value={statistics?.pendingApplications || 0}
+              value={statistics?.pending_applications || statistics?.pendingApplications || 0}
               icon={<VisibilityIcon />} 
               color="#ed6c02"
             />
@@ -147,7 +175,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} md={3}>
             <StatCard 
               title="Candidats recrutés" 
-              value={statistics?.acceptedApplications || 0}
+              value={statistics?.accepted_applications || statistics?.acceptedApplications || 0}
               icon={<PersonIcon />} 
               color="#9c27b0"
             />
@@ -207,31 +235,38 @@ export default function Dashboard() {
             </Button>
           </Box>
           
-          {recentItems?.length > 0 ? (
+          {Array.isArray(recentItems) && recentItems.length > 0 ? (
             <List>
-              {recentItems.map((application) => (
-                <Box key={application.id}>
-                  <ListItem 
-                    component={RouterLink} 
-                    to={`/applications/${application.id}`}
-                    sx={{ textDecoration: 'none', color: 'inherit' }}
-                  >
-                    <ListItemIcon>
-                      <PersonIcon />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={`${application.candidate.name}`}
-                      secondary={`Offre: ${application.job_offer.title}`}
-                    />
-                    <Chip 
-                      label={getStatusLabel(application.status)}
-                      color={getStatusColor(application.status)}
-                      size="small"
-                    />
-                  </ListItem>
-                  <Divider variant="inset" component="li" />
-                </Box>
-              ))}
+              {recentItems.map((application) => {
+                // Vérifier si l'application a toutes les propriétés nécessaires
+                if (!application || !application.id) {
+                  return null; // Ne pas rendre cet élément s'il est invalide
+                }
+                
+                return (
+                  <Box key={application.id}>
+                    <ListItem 
+                      component={RouterLink} 
+                      to={`/applications/${application.id}`}
+                      sx={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                      <ListItemIcon>
+                        <PersonIcon />
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={application.candidate?.name || application.user?.name || 'Candidat anonyme'}
+                        secondary={`Offre: ${application.job_offer?.title || 'Non spécifié'}`}
+                      />
+                      <Chip 
+                        label={getStatusLabel(application.status || 'pending')}
+                        color={getStatusColor(application.status || 'pending')}
+                        size="small"
+                      />
+                    </ListItem>
+                    <Divider variant="inset" component="li" />
+                  </Box>
+                );
+              })}
             </List>
           ) : (
             <Typography variant="body2" color="text.secondary">
@@ -263,7 +298,7 @@ export default function Dashboard() {
         <Grid item xs={12} sm={6} md={4}>
           <StatCard 
             title="En cours de revue" 
-            value={statistics?.reviewingApplications || 0}
+            value={statistics?.reviewing_applications || statistics?.reviewingApplications || 0}
             icon={<VisibilityIcon />} 
             color="#ed6c02"
           />
@@ -323,45 +358,52 @@ export default function Dashboard() {
         </Box>
         
         <Grid container spacing={3}>
-          {recentItems?.length > 0 ? (
-            recentItems.map((jobOffer) => (
-              <Grid item xs={12} sm={6} md={4} key={jobOffer.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" component="div" noWrap>
-                      {jobOffer.title}
-                    </Typography>
-                    <Typography color="text.secondary" gutterBottom>
-                      {jobOffer.company_name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {jobOffer.location}
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                      <Chip 
+          {Array.isArray(recentItems) && recentItems.length > 0 ? (
+            recentItems.map((jobOffer) => {
+              // Vérifier si l'offre est valide
+              if (!jobOffer || !jobOffer.id) {
+                return null;
+              }
+              
+              return (
+                <Grid item xs={12} sm={6} md={4} key={jobOffer.id}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" component="div" noWrap>
+                        {jobOffer.title || 'Titre non disponible'}
+                      </Typography>
+                      <Typography color="text.secondary" gutterBottom>
+                        {jobOffer.company_name || 'Entreprise non spécifiée'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {jobOffer.location || 'Lieu non spécifié'}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <Chip 
+                          size="small" 
+                          label={jobOffer.contract_type || 'Type non spécifié'}
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                        <Chip 
+                          size="small" 
+                          label={`${jobOffer.salary_min || '?'} - ${jobOffer.salary_max || '?'} €`} 
+                          sx={{ mb: 1 }}
+                        />
+                      </Box>
+                    </CardContent>
+                    <CardActions>
+                      <Button 
                         size="small" 
-                        label={jobOffer.contract_type}
-                        sx={{ mr: 1, mb: 1 }}
-                      />
-                      <Chip 
-                        size="small" 
-                        label={`${jobOffer.salary_min} - ${jobOffer.salary_max} €`} 
-                        sx={{ mb: 1 }}
-                      />
-                    </Box>
-                  </CardContent>
-                  <CardActions>
-                    <Button 
-                      size="small" 
-                      component={RouterLink} 
-                      to={`/job-offers/${jobOffer.id}`}
-                    >
-                      Voir détails
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))
+                        component={RouterLink} 
+                        to={`/job-offers/${jobOffer.id}`}
+                      >
+                        Voir détails
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              );
+            })
           ) : (
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary">

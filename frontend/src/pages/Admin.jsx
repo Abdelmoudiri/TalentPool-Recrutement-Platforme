@@ -215,8 +215,11 @@ export default function Admin() {
                   fullWidth
                   sx={{ textTransform: 'none' }}
                   startIcon={<PeopleIcon />}
+                  component={RouterLink}
+                  to="/applications"
+                  onClick={() => console.log("Redirection vers gestion des candidatures")}
                 >
-                  Gérer les utilisateurs
+                  Gérer les candidatures
                 </Button>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
@@ -225,6 +228,9 @@ export default function Admin() {
                   fullWidth
                   sx={{ textTransform: 'none' }}
                   startIcon={<WorkIcon />}
+                  component={RouterLink}
+                  to="/job-offers"
+                  onClick={() => console.log("Redirection vers modération des offres")}
                 >
                   Modérer les offres
                 </Button>
@@ -235,6 +241,10 @@ export default function Admin() {
                   fullWidth
                   sx={{ textTransform: 'none' }}
                   startIcon={<BusinessIcon />}
+                  onClick={() => {
+                    alert("Fonctionnalité en cours de développement");
+                    console.log("Redirection vers paramètres système (non implémenté)");
+                  }}
                 >
                   Paramètres système
                 </Button>
@@ -245,6 +255,10 @@ export default function Admin() {
                   fullWidth
                   sx={{ textTransform: 'none' }}
                   color="error"
+                  onClick={() => {
+                    alert("Fonctionnalité en cours de développement");
+                    console.log("Redirection vers maintenance (non implémenté)");
+                  }}
                 >
                   Maintenance
                 </Button>

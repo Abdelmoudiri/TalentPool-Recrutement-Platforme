@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JobApplication;
 use App\Services\JobApplicationService;
 use App\Services\JobOfferService;
 use Illuminate\Http\JsonResponse;
@@ -436,19 +437,88 @@ class JobApplicationController extends Controller
      */
     public function show(int $applicationId): JsonResponse
     {
-        $application = $this->jobApplicationService->findApplication($applicationId);
-        
-        if (!$application) {
-            return response()->json(['error' => 'Unauthorized or application not found'], 403);
+        try {
+            // Utiliser la méthode directe avec DB Query Builder au lieu des relations Eloquent
+            $application = \Illuminate\Support\Facades\DB::table('job_applications')
+                ->where('id', $applicationId)
+                ->first();
+            
+            if (!$application) {
+                return response()->json(['error' => 'Application not found'], 404);
+            }
+            
+            // Récupérer les données reliées sans utiliser les relations Eloquent
+            $jobOffer = \Illuminate\Support\Facades\DB::table('job_offers')
+                ->where('id', $application->job_offer_id)
+                ->first();
+                
+            $user = \Illuminate\Support\Facades\DB::table('users')
+                ->where('id', $application->user_id)
+                ->first();
+            
+            // Vérification simplifiée d'autorisation
+            $currentUser = \Illuminate\Support\Facades\Auth::user();
+            
+            if (!$currentUser) {
+                return response()->json(['error' => 'User not authenticated'], 401);
+            }
+            
+            // Vérifier les rôles sans appeler des méthodes personnalisées
+            $isAdmin = $currentUser->role === 'admin';
+            $isOwner = $currentUser->id == $application->user_id;
+            $isRecruiter = $currentUser->role === 'recruiter' && $jobOffer && $currentUser->id == $jobOffer->user_id;
+            
+            if (!$isAdmin && !$isOwner && !$isRecruiter) {
+                return response()->json(['error' => 'Unauthorized access'], 403);
+            }
+            
+            // Construire manuellement la réponse
+            $responseData = [
+                'id' => $application->id,
+                'user_id' => $application->user_id,
+                'job_offer_id' => $application->job_offer_id,
+                'status' => $application->status,
+                'cover_letter' => $application->cover_letter,
+                'cv_path' => $application->cv_path,
+                'notes' => $application->recruiter_notes ?? null,
+                'created_at' => $application->created_at,
+                'updated_at' => $application->updated_at,
+                'last_status_change' => $application->last_status_change ?? null,
+                
+                // Add user/candidate data
+                'candidate' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email
+                ] : null,
+                
+                // Add job offer data
+                'job_offer' => $jobOffer ? [
+                    'id' => $jobOffer->id,
+                    'title' => $jobOffer->title,
+                    'company_name' => $jobOffer->company_name ?? null,
+                    'location' => $jobOffer->location ?? null,
+                    'contract_type' => $jobOffer->contract_type ?? null,
+                    'user_id' => $jobOffer->user_id
+                ] : null
+            ];
+            
+            return response()->json($responseData);
+        } catch (\Exception $e) {
+            // Capture et journaliser l'erreur
+            \Illuminate\Support\Facades\Log::error('Application details error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'applicationId' => $applicationId
+            ]);
+            
+            // Retourner les détails de l'erreur pour le débogage
+            return response()->json([
+                'error' => 'Application details could not be retrieved',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-        
-        // Ensure we have related data
-        $application->load(['jobOffer', 'user:id,name,email']);
-        
-        // Add candidate property for frontend compatibility
-        $application->candidate = $application->user;
-        
-        return response()->json($application);
     }
 
     /**
@@ -583,13 +653,39 @@ class JobApplicationController extends Controller
     public function getRecentApplications(Request $request): JsonResponse
     {
         $limit = $request->input('limit', 5);
+        $user = Auth::user();
         
-        $applications = $this->jobApplicationService->getRecentApplications((int)$limit);
-        
-        if ($applications === null) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
+        // Vérifier si l'utilisateur est authentifié
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
         }
         
-        return response()->json(['applications' => $applications]);
+        try {
+            // Option 1: Utiliser le service existant pour les recruteurs
+            $applications = $this->jobApplicationService->getRecentApplications((int)$limit);
+            
+            // Option 2: Si l'utilisateur est un administrateur, récupérer toutes les candidatures 
+            // même si le service renvoie null
+            if ($applications === null && $user->role === 'admin') {
+                // Requête directe pour les administrateurs
+                $applications = JobApplication::with(['user', 'jobOffer'])
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+            }
+            
+            if ($applications === null) {
+                return response()->json(['error' => 'Unauthorized access'], 403);
+            }
+            
+            return response()->json(['applications' => $applications]);
+        }
+        catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error fetching recent applications: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Could not retrieve applications',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

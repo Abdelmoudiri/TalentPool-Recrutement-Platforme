@@ -67,8 +67,9 @@ export default function ApplicationsList() {
     status: '',
   });
   
-  // Check if user is a recruiter
+  // Vérifier le rôle de l'utilisateur
   const isRecruiter = user?.role === 'recruiter';
+  const isAdmin = user?.role === 'admin';
   
   // Status options for filtering
   const statusOptions = [
@@ -120,31 +121,71 @@ export default function ApplicationsList() {
         
         let response;
         
-        if (jobOfferId) {
-          // Fetch applications for a specific job offer (recruiter view)
-          response = await jobApplicationsAPI.getJobOfferApplications(jobOfferId);
+        try {
+          const isAdmin = user?.role === 'admin';
           
-          // Also fetch the job offer details
-          const jobOfferResponse = await jobOffersAPI.getById(jobOfferId);
-          setJobOffer(jobOfferResponse.data);
-        } else if (isRecruiter) {
-          // Fetch all applications for all of recruiter's job offers
-          response = await jobApplicationsAPI.getJobOfferApplications(null);
-        } else {
-          // Fetch candidate's own applications
-          response = await jobApplicationsAPI.getMyApplications();
+          if (jobOfferId) {
+            // Fetch applications for a specific job offer (recruiter view)
+            response = await jobApplicationsAPI.getJobOfferApplications(jobOfferId);
+            
+            // Also fetch the job offer details
+            const jobOfferResponse = await jobOffersAPI.getById(jobOfferId);
+            setJobOffer(jobOfferResponse.data);
+          } else if (isRecruiter || isAdmin) {
+            // Pour les recruteurs et les admins, utiliser récentes applications
+            console.log("Récupération des applications récentes pour admin/recruteur");
+            response = await jobApplicationsAPI.getRecentApplications(100);
+          } else {
+            // Fetch candidate's own applications
+            console.log("Récupération des applications du candidat");
+            response = await jobApplicationsAPI.getMyApplications();
+          }
+        } catch (err) {
+          console.error('Error during API call:', err);
+          throw err; // Re-throw to be caught by the main try/catch
         }
         
         // Set applications and pagination info
-        const applicationData = response.data.data || response.data.applications || response.data;
+        console.log('API response:', response);
+        
+        // Structure de données plus robuste pour gérer les différents formats de réponse
+        let applicationData;
+        
+        if (response.data.data) {
+          applicationData = response.data.data;
+        } else if (response.data.applications) {
+          applicationData = response.data.applications;
+        } else if (Array.isArray(response.data)) {
+          applicationData = response.data;
+        } else {
+          // En dernier recours, essayer de trouver un tableau quelque part
+          const possibleArrays = Object.values(response.data).filter(val => Array.isArray(val));
+          applicationData = possibleArrays.length > 0 ? possibleArrays[0] : [];
+        }
+        
+        console.log('Parsed application data:', applicationData);
         setApplications(Array.isArray(applicationData) ? applicationData : []);
         
+        // Gestion de la pagination
         if (response.data.meta?.last_page) {
           setTotalPages(response.data.meta.last_page);
+        } else {
+          // Si pas de pagination, on met une seule page
+          setTotalPages(1);
         }
       } catch (err) {
         console.error('Error fetching applications:', err);
-        setError('Impossible de charger les candidatures.');
+        let errorMessage = 'Impossible de charger les candidatures.';
+        
+        // Ajouter des détails de l'erreur pour un meilleur diagnostic
+        if (err.response?.data?.message) {
+          errorMessage += ` Détail: ${err.response.data.message}`;
+        } else if (err.message) {
+          errorMessage += ` Détail: ${err.message}`;
+        }
+        
+        setError(errorMessage);
+        setApplications([]); // S'assurer que nous avons un tableau vide
       } finally {
         setLoading(false);
       }
@@ -178,6 +219,8 @@ export default function ApplicationsList() {
       return `Candidatures pour ${jobOffer.title}`;
     } else if (isRecruiter) {
       return 'Toutes les candidatures reçues';
+    } else if (isAdmin) {
+      return 'Gestion des candidatures (Admin)';
     } else {
       return 'Mes candidatures';
     }
@@ -303,33 +346,35 @@ export default function ApplicationsList() {
                     {isRecruiter ? <PersonIcon color="primary" /> : <JobIcon color="primary" />}
                   </ListItemIcon>
                   
-                  <ListItemText
-                    primary={
-                      <Typography variant="subtitle1" component="div">
-                        {isRecruiter 
-                          ? application.candidate?.name || 'Candidat anonyme'
-                          : application.job_offer?.title || 'Offre d\'emploi'}
+                  {/* Remplacer ListItemText par une structure manuelle */}
+                  <div style={{ flexGrow: 1, minWidth: 0 }}>
+                    {/* Primary text */}
+                    <Typography variant="subtitle1" component="div">
+                      {isRecruiter 
+                        ? (application.candidate?.name || application.user?.name || 'Candidat anonyme')
+                        : (application.job_offer?.title || 'Offre d\'emploi')}
+                    </Typography>
+                    
+                    {/* Secondary content - structure explicite sans imbrication <p>/<div> */}
+                    <Typography variant="body2" color="text.secondary" component="div">
+                      {isRecruiter 
+                        ? `Poste: ${application.job_offer?.title || 'Non spécifié'}`
+                        : `Entreprise: ${application.job_offer?.company_name || 'Non spécifiée'}`}
+                    </Typography>
+                    
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center' }}>
+                      <CalendarIcon fontSize="small" style={{ marginRight: '4px', color: 'rgba(0, 0, 0, 0.6)' }} />
+                      <Typography variant="body2" color="text.secondary" component="span">
+                        {application.created_at 
+                          ? `Candidature soumise le ${new Date(application.created_at).toLocaleDateString()}` 
+                          : 'Date non disponible'}
                       </Typography>
-                    }
-                    secondary={
-                      <>
-                        <Typography variant="body2" color="text.secondary" component="span">
-                          {isRecruiter 
-                            ? `Poste: ${application.job_offer?.title}`
-                            : `Entreprise: ${application.job_offer?.company_name}`}
-                        </Typography>
-                        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-                          <CalendarIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary" component="span">
-                            Candidature soumise le {new Date(application.created_at).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ mt: 1 }}>
-                          <StatusChip status={application.status} />
-                        </Box>
-                      </>
-                    }
-                  />
+                    </div>
+                    
+                    <div style={{ marginTop: '8px' }}>
+                      <StatusChip status={application.status} />
+                    </div>
+                  </div>
                   
                   <ListItemSecondaryAction>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
