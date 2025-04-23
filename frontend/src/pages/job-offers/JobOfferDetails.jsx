@@ -47,6 +47,17 @@ const applicationSchema = yup.object({
     .string()
     .required('La lettre de motivation est requise')
     .min(50, 'La lettre de motivation doit comporter au moins 50 caractères'),
+  cv: yup
+    .mixed()
+    .test('fileSize', 'Le fichier est trop volumineux (max 2MB)', (value) => {
+      if (!value || !value[0]) return true; // No file provided, skip validation
+      return value[0].size <= 2 * 1024 * 1024; // 2MB
+    })
+    .test('fileType', 'Format de fichier non supporté (.pdf, .doc, .docx uniquement)', (value) => {
+      if (!value || !value[0]) return true; // No file provided, skip validation
+      const supportedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      return supportedTypes.includes(value[0].type);
+    }),
 }).required();
 
 /**
@@ -80,6 +91,9 @@ export default function JobOfferDetails() {
       cover_letter: '',
     }
   });
+  
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState('');
 
   // Fetch job offer data
   useEffect(() => {
@@ -89,7 +103,17 @@ export default function JobOfferDetails() {
         setError('');
         
         const response = await jobOffersAPI.getById(id);
-        setJobOffer(response.data);
+        console.log('Job offer data:', response.data);
+        const jobOfferData = response.data.job_offer || response.data;
+        
+        // Ensure is_active is properly handled as boolean
+        const processedOffer = {
+          ...jobOfferData,
+          is_active: jobOfferData.is_active === 1 ? true : (jobOfferData.is_active === 0 ? false : jobOfferData.is_active)
+        };
+        
+        console.log('is_active value (processed):', processedOffer.is_active, typeof processedOffer.is_active);
+        setJobOffer(processedOffer);
       } catch (err) {
         console.error('Error fetching job offer:', err);
         setError('Impossible de charger l\'offre d\'emploi.');
@@ -104,31 +128,67 @@ export default function JobOfferDetails() {
   // Handle job application submission
   const handleApply = async (data) => {
     try {
-      setApplying(true);
-      setApplicationError('');
-      
-      await jobApplicationsAPI.apply(id, data);
-      
-      setApplicationSuccess(true);
-      reset(); // Clear form fields
+        setApplying(true);
+        setApplicationError('');
+        setFileError('');
+
+        // Prepare application data
+        const applicationData = {
+            cover_letter: data.cover_letter
+        };
+
+        // Add CV file if selected
+        if (data.cv && data.cv[0]) {
+            applicationData.cv = data.cv[0];
+        }
+
+        // Send application data to the backend
+        const response = await jobApplicationsAPI.apply(id, applicationData);
+
+        // Show success message and reset form
+        setApplicationSuccess(true);
+        reset(); // Clear form fields
+        setSelectedFile(null);
     } catch (err) {
-      console.error('Error applying to job:', err);
-      
-      if (err.response?.data?.message) {
-        setApplicationError(err.response.data.message);
-      } else if (err.response?.data?.errors) {
-        // Format validation errors from the API
-        const apiErrors = err.response.data.errors;
-        const errorMessages = Object.keys(apiErrors)
-          .map(key => apiErrors[key].join(', '))
-          .join('. ');
-        
-        setApplicationError(errorMessages);
-      } else {
-        setApplicationError('Une erreur est survenue lors de la candidature. Veuillez réessayer.');
-      }
+        console.error('Error applying to job:', err);
+
+        // Handle errors from the backend
+        if (err.response?.data?.message) {
+            setApplicationError(err.response.data.message);
+        } else if (err.response?.data?.errors) {
+            const errorMessages = Object.values(err.response.data.errors)
+                .flat()
+                .join(', ');
+            setApplicationError(errorMessages);
+        } else {
+            setApplicationError('Une erreur est survenue lors de la candidature. Veuillez réessayer.');
+        }
     } finally {
-      setApplying(false);
+        setApplying(false);
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        setFileError('Le fichier est trop volumineux (max 2MB)');
+        setSelectedFile(null);
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        setFileError('Format de fichier non supporté (.pdf, .doc, .docx uniquement)');
+        setSelectedFile(null);
+        return;
+      }
+      
+      setFileError('');
+      setSelectedFile(file);
     }
   };
 
@@ -254,7 +314,7 @@ export default function JobOfferDetails() {
                 </Typography>
               </Box>
               
-              {!jobOffer.is_active && (
+              {jobOffer.is_active === false && (
                 <Chip label="Inactive" color="error" />
               )}
             </Box>
@@ -304,7 +364,7 @@ export default function JobOfferDetails() {
         </Grid>
         
         {/* Application button for candidates */}
-        {!isRecruiter && jobOffer.is_active && (
+        {!isRecruiter && jobOffer.is_active === true && (
           <Box sx={{ mt: 4 }}>
             <Button 
               variant="contained" 
@@ -319,7 +379,7 @@ export default function JobOfferDetails() {
       </Paper>
       
       {/* Application form for candidates */}
-      {!isRecruiter && jobOffer.is_active && (
+      {!isRecruiter && jobOffer.is_active === true && (
         <Paper id="application-form" elevation={2} sx={{ p: 4 }}>
           <Typography variant="h5" gutterBottom>
             Postuler
@@ -349,6 +409,49 @@ export default function JobOfferDetails() {
                   error={!!errors.cover_letter}
                   helperText={errors.cover_letter?.message}
                 />
+                
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    CV (optionnel)
+                  </Typography>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    id="cv-upload"
+                    style={{ display: 'none' }}
+                    {...register('cv')}
+                    onChange={(e) => {
+                      register('cv').onChange(e);
+                      handleFileChange(e);
+                    }}
+                  />
+                  <label htmlFor="cv-upload">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      sx={{ mr: 2 }}
+                    >
+                      Parcourir...
+                    </Button>
+                    {selectedFile ? (
+                      <Typography variant="body2" component="span">
+                        {selectedFile.name}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" component="span" color="text.secondary">
+                        Aucun fichier sélectionné
+                      </Typography>
+                    )}
+                  </label>
+                  {(errors.cv || fileError) && (
+                    <Typography color="error" variant="caption" display="block" sx={{ mt: 1 }}>
+                      {errors.cv?.message || fileError}
+                    </Typography>
+                  )}
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                    Formats acceptés: PDF, DOC, DOCX. Taille maximale: 2MB
+                  </Typography>
+                </Box>
                 
                 <Button
                   type="submit"

@@ -85,6 +85,21 @@ class JobApplicationService
         if ($user->isAdmin() || 
             ($user->isCandidate() && $application->user_id === $user->id) || 
             ($user->isRecruiter() && $jobOffer && $jobOffer->user_id === $user->id)) {
+            
+            // Ensure relationships are loaded
+            if (!$application->relationLoaded('jobOffer')) {
+                $application->load('jobOffer');
+            }
+            
+            if (!$application->relationLoaded('candidate')) {
+                $application->load(['candidate' => function($query) {
+                    $query->select('id', 'name', 'email');
+                }]);
+            }
+            
+            // Add candidate property for frontend compatibility
+            $application->candidate = $application->user;
+            
             return $application;
         }
         

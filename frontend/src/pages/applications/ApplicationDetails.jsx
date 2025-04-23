@@ -59,7 +59,7 @@ export default function ApplicationDetails() {
   const isOwner = application && !isRecruiter && application.user_id === user?.id;
   
   // Check if the user is the recruiter for this job offer
-  const isJobRecruiter = application && isRecruiter && application.job_offer.user_id === user?.id;
+  const isJobRecruiter = application && isRecruiter && application.job_offer && application.job_offer.user_id === user?.id;
   
   // Status options
   const statusOptions = [
@@ -84,13 +84,38 @@ export default function ApplicationDetails() {
         setError('');
         
         const response = await jobApplicationsAPI.getById(applicationId);
-        setApplication(response.data);
+        console.log('Application API response:', response);
+        
+        // Handle different response formats
+        const applicationData = response.data.application || response.data;
+        console.log('Application data structure:', applicationData);
+        
+        if (!applicationData) {
+          throw new Error('Données de candidature introuvables');
+        }
+        
+        // Check if we have the expected properties
+        if (!applicationData.job_offer_id) {
+          console.error('Missing job_offer_id in application data');
+        }
+        
+        // Ensure job_offer and candidate/user objects are properly accessed
+        const processedData = {
+          ...applicationData,
+          job_offer: applicationData.job_offer || {},
+          candidate: applicationData.candidate || applicationData.user || {},
+          user: applicationData.user || applicationData.candidate || {}
+        };
+        
+        console.log('Processed application data:', processedData);
+        setApplication(processedData);
         
         // Set initial value for status dialog
-        setNewStatus(response.data.status);
+        setNewStatus(processedData.status || 'pending');
       } catch (err) {
         console.error('Error fetching application:', err);
-        setError('Impossible de charger les détails de la candidature.');
+        const errorMessage = err.response?.data?.error || err.message || 'Impossible de charger les détails de la candidature.';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -290,25 +315,27 @@ export default function ApplicationDetails() {
                 </Typography>
                 
                 <Typography variant="h5" gutterBottom>
-                  {application.job_offer.title}
+                  {application.job_offer?.title || 'Titre non disponible'}
                 </Typography>
                 
                 <Typography variant="body1" color="text.secondary" gutterBottom>
-                  {application.job_offer.company_name}
+                  {application.job_offer?.company_name || 'Entreprise non disponible'}
                 </Typography>
                 
                 <Typography variant="body2" paragraph>
-                  {application.job_offer.location} • {application.job_offer.contract_type}
+                  {application.job_offer?.location || 'Lieu non spécifié'} • {application.job_offer?.contract_type || 'Type de contrat non spécifié'}
                 </Typography>
                 
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  component={RouterLink}
-                  to={`/job-offers/${application.job_offer.id}`}
-                >
-                  Voir l'offre complète
-                </Button>
+                {application.job_offer?.id && (
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    component={RouterLink}
+                    to={`/job-offers/${application.job_offer.id}`}
+                  >
+                    Voir l'offre complète
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -322,11 +349,11 @@ export default function ApplicationDetails() {
                 </Typography>
                 
                 <Typography variant="h5" gutterBottom>
-                  {application.candidate.name}
+                  {application.candidate?.name || application.user?.name || 'Nom non disponible'}
                 </Typography>
                 
                 <Typography variant="body1" color="text.secondary" gutterBottom>
-                  {application.candidate.email}
+                  {application.candidate?.email || application.user?.email || 'Email non disponible'}
                 </Typography>
                 
                 <Box sx={{ mt: 2 }}>

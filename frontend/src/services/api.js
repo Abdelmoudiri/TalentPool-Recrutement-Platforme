@@ -80,6 +80,19 @@ api.interceptors.response.use(
       }
     }
     
+    // Add better error handling
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('API Error Response:', error.response.status, error.response.data);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('API Error Request:', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('API Error:', error.message);
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -108,16 +121,32 @@ const jobOffersAPI = {
 const jobApplicationsAPI = {
   // Candidate routes
   getMyApplications: () => api.get('/applications/my'),
-  apply: (jobOfferId, applicationData) => api.post(`/applications/job/${jobOfferId}`, applicationData),
+  apply: (jobOfferId, applicationData) => {
+    // Use FormData if we have files to upload
+    if (applicationData.cv) {
+      const formData = new FormData();
+      formData.append('cv', applicationData.cv);
+      if (applicationData.cover_letter) {
+        formData.append('cover_letter', applicationData.cover_letter);
+      }
+      return api.post(`/applications/job/${jobOfferId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    }
+    return api.post(`/applications/job/${jobOfferId}`, applicationData);
+  },
   withdraw: (applicationId) => api.delete(`/applications/${applicationId}`),
   
   // Recruiter routes
   getJobOfferApplications: (jobOfferId) => api.get(`/applications/job/${jobOfferId}`),
-  updateStatus: (applicationId, status) => api.put(`/applications/${applicationId}/status`, { status }),
+  updateStatus: (applicationId, status, notes) => api.put(`/applications/${applicationId}/status`, { status, notes }),
   
   // Common routes
   getById: (applicationId) => api.get(`/applications/${applicationId}`),
   getStatistics: () => api.get('/applications/statistics'),
+  getRecentApplications: (limit = 5) => api.get('/applications/recent', { params: { limit } }),
 };
 
 export {

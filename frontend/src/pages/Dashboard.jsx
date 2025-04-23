@@ -57,17 +57,20 @@ export default function Dashboard() {
         if (isRecruiter) {
           // Recruiter: get job offer statistics
           const statsResponse = await jobOffersAPI.getStatistics();
-          stats = statsResponse.data;
+          stats = statsResponse.data.statistics || statsResponse.data;
           
           // For recruiters, fetch recent applications
-          // Since there's no endpoint to get all applications without a job ID,
-          // we'll skip this in the dashboard and just show empty state
-          // In a real implementation, you might need to add an API endpoint for this
-          items = []; // Initialize with empty array to avoid errors
+          try {
+            const recentAppsResponse = await jobApplicationsAPI.getRecentApplications(5);
+            items = recentAppsResponse.data.applications || recentAppsResponse.data || [];
+          } catch (err) {
+            console.error('Error fetching recent applications:', err);
+            items = []; // Initialize with empty array to avoid errors
+          }
         } else {
           // Candidate: get application statistics
           const statsResponse = await jobApplicationsAPI.getStatistics();
-          stats = statsResponse.data;
+          stats = statsResponse.data.statistics || statsResponse.data;
           
           // Get recent job offers
           const recentResponse = await jobOffersAPI.getAll({ limit: 5 });

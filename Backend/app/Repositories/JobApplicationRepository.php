@@ -59,7 +59,7 @@ class JobApplicationRepository implements JobApplicationRepositoryInterface
      */
     public function find(int $id): ?JobApplication
     {
-        return JobApplication::find($id);
+        return JobApplication::with(['jobOffer', 'user:id,name,email'])->find($id);
     }
 
     /**

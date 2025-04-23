@@ -93,7 +93,7 @@ class JobApplicationController extends Controller
             return response()->json(['error' => 'Unauthorized or job offer not found'], 403);
         }
         
-        return response()->json(['applications' => $applications]);
+        return response()->json($applications);
     }
 
     /**
@@ -147,7 +147,7 @@ class JobApplicationController extends Controller
             return response()->json(['error' => 'Unauthorized access'], 403);
         }
         
-        return response()->json(['applications' => $applications]);
+        return response()->json($applications);
     }
 
     /**
@@ -442,7 +442,13 @@ class JobApplicationController extends Controller
             return response()->json(['error' => 'Unauthorized or application not found'], 403);
         }
         
-        return response()->json(['application' => $application]);
+        // Ensure we have related data
+        $application->load(['jobOffer', 'user:id,name,email']);
+        
+        // Add candidate property for frontend compatibility
+        $application->candidate = $application->user;
+        
+        return response()->json($application);
     }
 
     /**

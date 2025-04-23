@@ -136,7 +136,9 @@ export default function ApplicationsList() {
         }
         
         // Set applications and pagination info
-        setApplications(response.data.data || response.data);
+        const applicationData = response.data.data || response.data.applications || response.data;
+        setApplications(Array.isArray(applicationData) ? applicationData : []);
+        
         if (response.data.meta?.last_page) {
           setTotalPages(response.data.meta.last_page);
         }

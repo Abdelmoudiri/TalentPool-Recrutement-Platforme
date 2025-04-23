@@ -41,6 +41,15 @@ class JobApplication extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+    
+    /**
+     * Get the user who submitted this application.
+     * This is an alias for candidate() for better backend/frontend compatibility.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     /**
      * Get the job offer this application is for.

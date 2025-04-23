@@ -115,8 +115,23 @@ export default function JobOffersList() {
         // Fetch job offers from API
         const response = await jobOffersAPI.getAll(params);
         
+        // Log response data for debugging
+        console.log('Job offers API response:', response.data);
+        
         // Set job offers and pagination info
-        setJobOffers(response.data.job_offers || []);
+        const jobOffersData = response.data.job_offers || response.data;
+        
+        // Ensure is_active is properly handled
+        const processedJobOffers = Array.isArray(jobOffersData) 
+          ? jobOffersData.map(offer => ({
+              ...offer,
+              is_active: offer.is_active === 1 ? true : (offer.is_active === 0 ? false : offer.is_active)
+            }))
+          : [];
+          
+        console.log('Processed job offers:', processedJobOffers);
+        
+        setJobOffers(processedJobOffers);
         setTotalPages(1); // Backend doesn't support pagination yet
       } catch (err) {
         console.error('Error fetching job offers:', err);
@@ -329,7 +344,7 @@ function JobOfferCard({ jobOffer, isRecruiter, user }) {
           </Typography>
         </Box>
         
-        {!jobOffer.is_active && (
+        {jobOffer.is_active === false && (
           <Chip 
             label="Inactive" 
             color="error" 
