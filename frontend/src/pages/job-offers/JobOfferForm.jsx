@@ -31,7 +31,6 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 
-// Form validation schema
 const schema = yup.object({
   title: yup
     .string()
@@ -79,9 +78,7 @@ const schema = yup.object({
     .required('Le statut est requis'),
 }).required();
 
-/**
- * Contract type options
- */
+
 const contractTypes = [
   { value: 'CDI', label: 'CDI' },
   { value: 'CDD', label: 'CDD' },
@@ -90,10 +87,7 @@ const contractTypes = [
   { value: 'Freelance', label: 'Freelance' },
 ];
 
-/**
- * JobOfferForm component
- * Used for both creating new job offers and editing existing ones
- */
+
 export default function JobOfferForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -103,7 +97,6 @@ export default function JobOfferForm() {
   const [error, setError] = useState('');
   const [isEditMode] = useState(!!id);
   
-  // Initialize form with react-hook-form
   const { control, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -114,12 +107,11 @@ export default function JobOfferForm() {
       contract_type: '',
       salary_min: '',
       salary_max: '',
-      expires_at: dayjs(new Date().setDate(new Date().getDate() + 30)), // Use dayjs instead of Date
+      expires_at: dayjs(new Date().setDate(new Date().getDate() + 30)), 
       is_active: true,
     }
   });
   
-  // If in edit mode, fetch job offer data
   useEffect(() => {
     const fetchJobOffer = async () => {
       try {
@@ -129,13 +121,11 @@ export default function JobOfferForm() {
         const response = await jobOffersAPI.getById(id);
         const jobOffer = response.data;
         
-        // Check if the user is the owner of this job offer
         if (jobOffer.user_id !== user?.id) {
           navigate('/job-offers');
           return;
         }
         
-        // Set form values from job offer data
         reset({
           title: jobOffer.title,
           description: jobOffer.description,
@@ -144,7 +134,7 @@ export default function JobOfferForm() {
           contract_type: jobOffer.contract_type,
           salary_min: jobOffer.salary_min,
           salary_max: jobOffer.salary_max,
-          expires_at: dayjs(jobOffer.expires_at), // Use dayjs instead of Date
+          expires_at: dayjs(jobOffer.expires_at), 
           is_active: jobOffer.is_active,
         });
       } catch (err) {
@@ -160,27 +150,22 @@ export default function JobOfferForm() {
     }
   }, [id, isEditMode, navigate, reset, user?.id]);
   
-  // Handle form submission
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       setError('');
       
       if (isEditMode) {
-        // Update existing job offer
         await jobOffersAPI.update(id, data);
       } else {
-        // Create new job offer
         await jobOffersAPI.create(data);
       }
       
-      // Navigate back to job offers list
       navigate('/job-offers');
     } catch (err) {
       console.error('Error saving job offer:', err);
       
       if (err.response?.data?.errors) {
-        // Format validation errors from the API
         const apiErrors = err.response.data.errors;
         const errorMessages = Object.keys(apiErrors)
           .map(key => apiErrors[key].join(', '))
@@ -198,7 +183,6 @@ export default function JobOfferForm() {
     }
   };
 
-  // Render loading state
   if (initialLoading) {
     return (
       <Container sx={{ mt: 4, textAlign: 'center' }}>

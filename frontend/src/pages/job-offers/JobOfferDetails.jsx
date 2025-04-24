@@ -41,7 +41,6 @@ import {
   Send as SendIcon,
 } from '@mui/icons-material';
 
-// Form validation schema for job application
 const applicationSchema = yup.object({
   cover_letter: yup
     .string()
@@ -50,21 +49,17 @@ const applicationSchema = yup.object({
   cv: yup
     .mixed()
     .test('fileSize', 'Le fichier est trop volumineux (max 2MB)', (value) => {
-      if (!value || !value[0]) return true; // No file provided, skip validation
-      return value[0].size <= 2 * 1024 * 1024; // 2MB
+      if (!value || !value[0]) return true; 
+      return value[0].size <= 2 * 1024 * 1024; 
     })
     .test('fileType', 'Format de fichier non supporté (.pdf, .doc, .docx uniquement)', (value) => {
-      if (!value || !value[0]) return true; // No file provided, skip validation
+      if (!value || !value[0]) return true; 
       const supportedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       return supportedTypes.includes(value[0].type);
     }),
 }).required();
 
-/**
- * JobOfferDetails component
- * Displays detailed information about a specific job offer
- * Allows candidates to apply and recruiters to edit/delete their offers
- */
+
 export default function JobOfferDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -78,13 +73,10 @@ export default function JobOfferDetails() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
-  // Check if user is a recruiter
   const isRecruiter = user?.role === 'recruiter';
   
-  // Check if the user is the owner of this job offer
   const isOwner = jobOffer && isRecruiter && jobOffer.user_id === user?.id;
   
-  // Initialize form with react-hook-form
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: yupResolver(applicationSchema),
     defaultValues: {
@@ -95,7 +87,6 @@ export default function JobOfferDetails() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileError, setFileError] = useState('');
 
-  // Fetch job offer data
   useEffect(() => {
     const fetchJobOffer = async () => {
       try {
@@ -106,7 +97,6 @@ export default function JobOfferDetails() {
         console.log('Job offer data:', response.data);
         const jobOfferData = response.data.job_offer || response.data;
         
-        // Ensure is_active is properly handled as boolean
         const processedOffer = {
           ...jobOfferData,
           is_active: jobOfferData.is_active === 1 ? true : (jobOfferData.is_active === 0 ? false : jobOfferData.is_active)
@@ -125,34 +115,28 @@ export default function JobOfferDetails() {
     fetchJobOffer();
   }, [id]);
 
-  // Handle job application submission
   const handleApply = async (data) => {
     try {
         setApplying(true);
         setApplicationError('');
         setFileError('');
 
-        // Prepare application data
         const applicationData = {
             cover_letter: data.cover_letter
         };
 
-        // Add CV file if selected
         if (data.cv && data.cv[0]) {
             applicationData.cv = data.cv[0];
         }
 
-        // Send application data to the backend
-        const response = await jobApplicationsAPI.apply(id, applicationData);
+        // const response = await jobApplicationsAPI.apply(id, applicationData);
 
-        // Show success message and reset form
         setApplicationSuccess(true);
-        reset(); // Clear form fields
+        reset(); 
         setSelectedFile(null);
     } catch (err) {
         console.error('Error applying to job:', err);
 
-        // Handle errors from the backend
         if (err.response?.data?.message) {
             setApplicationError(err.response.data.message);
         } else if (err.response?.data?.errors) {
@@ -168,18 +152,15 @@ export default function JobOfferDetails() {
     }
   };
 
-  // Handle file selection
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file size (2MB max)
       if (file.size > 2 * 1024 * 1024) {
         setFileError('Le fichier est trop volumineux (max 2MB)');
         setSelectedFile(null);
         return;
       }
       
-      // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
         setFileError('Format de fichier non supporté (.pdf, .doc, .docx uniquement)');
@@ -192,14 +173,12 @@ export default function JobOfferDetails() {
     }
   };
 
-  // Handle job offer deletion
   const handleDelete = async () => {
     try {
       setDeleting(true);
       
       await jobOffersAPI.delete(id);
       
-      // Close dialog and navigate back to list
       setDeleteDialogOpen(false);
       navigate('/job-offers', { replace: true });
     } catch (err) {
@@ -211,11 +190,9 @@ export default function JobOfferDetails() {
     }
   };
 
-  // Handle delete dialog open/close
   const openDeleteDialog = () => setDeleteDialogOpen(true);
   const closeDeleteDialog = () => setDeleteDialogOpen(false);
 
-  // Render loading state
   if (loading) {
     return (
       <Container sx={{ mt: 4, textAlign: 'center' }}>
@@ -224,7 +201,6 @@ export default function JobOfferDetails() {
     );
   }
   
-  // Render error state
   if (error) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -241,7 +217,6 @@ export default function JobOfferDetails() {
     );
   }
   
-  // Render job not found
   if (!jobOffer) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -258,7 +233,6 @@ export default function JobOfferDetails() {
     );
   }
 
-  // Format date for display
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
@@ -266,7 +240,6 @@ export default function JobOfferDetails() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Back button and actions */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Button 
           startIcon={<ArrowBackIcon />} 
@@ -300,7 +273,6 @@ export default function JobOfferDetails() {
         )}
       </Box>
       
-      {/* Job offer details */}
       <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
@@ -363,7 +335,6 @@ export default function JobOfferDetails() {
           </Grid>
         </Grid>
         
-        {/* Application button for candidates */}
         {!isRecruiter && jobOffer.is_active === true && (
           <Box sx={{ mt: 4 }}>
             <Button 
@@ -378,7 +349,6 @@ export default function JobOfferDetails() {
         )}
       </Paper>
       
-      {/* Application form for candidates */}
       {!isRecruiter && jobOffer.is_active === true && (
         <Paper id="application-form" elevation={2} sx={{ p: 4 }}>
           <Typography variant="h5" gutterBottom>
@@ -469,7 +439,6 @@ export default function JobOfferDetails() {
         </Paper>
       )}
       
-      {/* Applications list link for recruiters who own this job */}
       {isOwner && (
         <Button 
           variant="contained" 
@@ -482,7 +451,6 @@ export default function JobOfferDetails() {
         </Button>
       )}
       
-      {/* Delete confirmation dialog */}
       <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog}>
         <DialogTitle>Supprimer cette offre?</DialogTitle>
         <DialogContent>
@@ -506,10 +474,7 @@ export default function JobOfferDetails() {
   );
 }
 
-/**
- * InfoItem Component
- * Displays a labeled piece of information with an icon
- */
+
 function InfoItem({ icon, label, value }) {
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>

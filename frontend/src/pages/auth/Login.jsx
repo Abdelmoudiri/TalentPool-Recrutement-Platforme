@@ -19,7 +19,6 @@ import {
 } from '@mui/material';
 import { LockOutlined as LockIcon } from '@mui/icons-material';
 
-// Form validation schema
 const schema = yup.object({
   email: yup
     .string()
@@ -31,10 +30,7 @@ const schema = yup.object({
     .min(6, 'Le mot de passe doit comporter au moins 6 caractères'),
 }).required();
 
-/**
- * Login page component
- * Handles user authentication with email and password
- */
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -42,7 +38,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Initialize form with react-hook-form
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -51,19 +46,15 @@ export default function Login() {
     }
   });
 
-  // Get redirect path from location state or default to dashboard
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // Handle form submission
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       setError('');
       
-      // Call login method from auth context
       await login(data);
       
-      // Redirect to previous page or dashboard
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);

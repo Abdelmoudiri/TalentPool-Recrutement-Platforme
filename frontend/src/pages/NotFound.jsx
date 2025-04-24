@@ -13,10 +13,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 
-/**
- * NotFound component
- * Displayed when user navigates to a route that doesn't exist
- */
+
 export default function NotFound() {
   const { isAuthenticated } = useAuth();
 

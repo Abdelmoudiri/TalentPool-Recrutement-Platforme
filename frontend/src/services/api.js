@@ -11,12 +11,10 @@ const api = axios.create({
   withCredentials: true 
 });
 
-// Token management functions
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => localStorage.setItem('token', token);
 const removeToken = () => localStorage.removeItem('token');
 
-// Check if token is expired
 const isTokenExpired = (token) => {
   try {
     const decoded = jwtDecode(token);
@@ -27,7 +25,6 @@ const isTokenExpired = (token) => {
   }
 };
 
-// Get user info from token
 const getUserFromToken = () => {
   try {
     const token = getToken();
@@ -39,7 +36,6 @@ const getUserFromToken = () => {
   }
 };
 
-// Request interceptor - add auth header if token exists
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -51,45 +47,34 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle token refresh and common errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     
-    // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
       try {
-        // Try to refresh token
         const refreshResponse = await api.post('/auth/refresh');
         const { token } = refreshResponse.data;
         
-        // Update stored token
         setToken(token);
         
-        // Retry the original request with new token
         originalRequest.headers['Authorization'] = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, logout user
         removeToken();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
     
-    // Add better error handling
     if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
       console.error('API Error Response:', error.response.status, error.response.data);
     } else if (error.request) {
-      // The request was made but no response was received
       console.error('API Error Request:', error.request);
     } else {
-      // Something happened in setting up the request that triggered an Error
       console.error('API Error:', error.message);
     }
     
@@ -97,7 +82,6 @@ api.interceptors.response.use(
   }
 );
 
-// API Methods for Auth
 const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
@@ -107,7 +91,6 @@ const authAPI = {
   getCurrentUser: () => api.get('/user'),
 };
 
-// API Methods for Job Offers
 const jobOffersAPI = {
   getAll: (params) => api.get('/job-offers', { params }),
   getById: (id) => api.get(`/job-offers/${id}`),
@@ -117,12 +100,9 @@ const jobOffersAPI = {
   getStatistics: () => api.get('/job-offers/statistics'),
 };
 
-// API Methods for Job Applications
 const jobApplicationsAPI = {
-  // Candidate routes
   getMyApplications: () => api.get('/applications/my'),
   apply: (jobOfferId, applicationData) => {
-    // Use FormData if we have files to upload
     if (applicationData.cv) {
       const formData = new FormData();
       formData.append('cv', applicationData.cv);
@@ -139,9 +119,7 @@ const jobApplicationsAPI = {
   },
   withdraw: (applicationId) => api.delete(`/applications/${applicationId}`),
   
-  // Recruiter routes
   getJobOfferApplications: (jobOfferId) => {
-    // Si jobOfferId est null, récupérer toutes les candidatures du recruteur
     if (jobOfferId === null) {
       return api.get('/applications/recent', { params: { limit: 100 } });
     }
@@ -149,24 +127,16 @@ const jobApplicationsAPI = {
   },
   updateStatus: (applicationId, status, notes) => api.put(`/applications/${applicationId}/status`, { status, notes }),
   
-  // Common routes
   getById: (applicationId) => {
-    // Utiliser l'implémentation directe en DB à la place des relations Eloquent
     return api.get(`/applications/${applicationId}`, {
-      // Add timeout to prevent hanging requests
       timeout: 20000,
-      // Ajouter un paramètre pour forcer l'utilisation de la méthode directe
       params: { direct: true }
     }).catch(error => {
-      // Enhanced error handling
       if (error.response) {
-        // The request was made and the server responded with a status code outside of 2xx
         console.error(`Server error ${error.response.status} for application #${applicationId}:`, error.response.data);
       } else if (error.request) {
-        // The request was made but no response was received
         console.error(`No response for application #${applicationId}:`, error.request);
       } else {
-        // Something happened in setting up the request
         console.error(`Error setting up request for application #${applicationId}:`, error.message);
       }
       throw error;

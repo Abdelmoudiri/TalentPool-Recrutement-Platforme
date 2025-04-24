@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
 
-// Form validation schema
 const schema = yup.object({
   name: yup
     .string()
@@ -49,17 +48,13 @@ const schema = yup.object({
     .required('Le rôle est requis'),
 }).required();
 
-/**
- * Register page component
- * Handles user registration with form validation
- */
+
 export default function Register() {
   const { register: authRegister } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Initialize form with react-hook-form
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -71,23 +66,18 @@ export default function Register() {
     }
   });
 
-  // Handle form submission
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       setError('');
       
-      // Call register method from auth context
       await authRegister(data);
       
-      // Redirect to dashboard after successful registration
       navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('Registration error:', err);
       
-      // Handle different types of errors
       if (err.response?.data?.errors) {
-        // Format validation errors from the API
         const apiErrors = err.response.data.errors;
         const errorMessages = Object.keys(apiErrors)
           .map(key => apiErrors[key].join(', '))

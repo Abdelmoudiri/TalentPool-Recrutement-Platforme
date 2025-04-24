@@ -19,7 +19,6 @@ import {
 } from '@mui/material';
 import { LockReset as LockResetIcon } from '@mui/icons-material';
 
-// Form validation schema
 const schema = yup.object({
   email: yup
     .string()
@@ -27,17 +26,13 @@ const schema = yup.object({
     .required('L\'email est requis'),
 }).required();
 
-/**
- * ForgotPassword component
- * Allows users to request a password reset link
- */
+
 export default function ForgotPassword() {
   const { forgotPassword } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Initialize form with react-hook-form
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -45,17 +40,14 @@ export default function ForgotPassword() {
     }
   });
 
-  // Handle form submission
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       setError('');
       setSuccess(false);
       
-      // Call forgotPassword method from auth context
       await forgotPassword(data.email);
       
-      // Show success message
       setSuccess(true);
     } catch (err) {
       console.error('Password reset request error:', err);

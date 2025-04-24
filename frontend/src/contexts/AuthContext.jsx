@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI, setToken, removeToken, getUserFromToken } from '../services/api';
 
-// Default context values
 const defaultContextValue = {
   user: null,
   isAuthenticated: false,
@@ -14,12 +13,9 @@ const defaultContextValue = {
   resetPassword: async () => {},
 };
 
-// Create the Auth Context
 const AuthContext = createContext(defaultContextValue);
 
-/**
- * Hook for components to access auth context
- */
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -28,16 +24,12 @@ export function useAuth() {
   return context;
 }
 
-/**
- * Auth Provider Component
- * Wraps the application and provides authentication state and methods
- */
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Check if user is already logged in on mount
   useEffect(() => {
     async function checkAuthStatus() {
       try {
@@ -58,7 +50,6 @@ export function AuthProvider({ children }) {
     checkAuthStatus();
   }, []);
   
-  // Login function
   async function login(credentials) {
     setError(null);
     try {
@@ -75,7 +66,6 @@ export function AuthProvider({ children }) {
     }
   }
   
-  // Register function
   async function register(userData) {
     setError(null);
     try {
@@ -92,7 +82,6 @@ export function AuthProvider({ children }) {
     }
   }
   
-  // Logout function
   async function logout() {
     try {
       if (user) {
@@ -106,7 +95,6 @@ export function AuthProvider({ children }) {
     }
   }
   
-  // Forgot password function
   async function forgotPassword(email) {
     setError(null);
     try {
@@ -118,7 +106,6 @@ export function AuthProvider({ children }) {
     }
   }
   
-  // Reset password function
   async function resetPassword(data) {
     setError(null);
     try {
@@ -130,10 +117,8 @@ export function AuthProvider({ children }) {
     }
   }
   
-  // Calculate authenticated state
   const isAuthenticated = !!user;
   
-  // Build context value
   const contextValue = {
     user,
     isAuthenticated,
@@ -146,7 +131,6 @@ export function AuthProvider({ children }) {
     resetPassword,
   };
   
-  // Return the provider with context value
   return (
     <AuthContext.Provider value={contextValue}>
       {children}

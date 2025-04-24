@@ -36,58 +36,48 @@ export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   
-  // Check user roles
   const isRecruiter = user?.role === 'recruiter';
   const isAdmin = user?.role === 'admin';
   
-  // Handle drawer toggle
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
   
-  // Handle profile menu open
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
   
-  // Handle profile menu close
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
   
-  // Handle logout
   const handleLogout = async () => {
     handleMenuClose();
     await logout();
     navigate('/login');
   };
   
-  // Create the navigation items based on user role
   const navigationItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Job Offers', icon: <JobIcon />, path: '/job-offers' },
   ];
   
-  // Add admin-specific items
   if (isAdmin) {
     navigationItems.push(
       { text: 'Admin', icon: <PersonIcon />, path: '/admin' },
     );
   }
   
-  // Add recruiter-specific items
   if (isRecruiter) {
     navigationItems.push(
       { text: 'Post New Job', icon: <JobIcon />, path: '/job-offers/new' },
     );
   }
   
-  // Add applications link
   navigationItems.push(
     { text: 'Applications', icon: <ApplicationIcon />, path: '/applications' },
   );
   
-  // Create the drawer content (shared between mobile and desktop)
   const drawerContent = (
     <div>
       <Toolbar>
@@ -115,14 +105,12 @@ export default function MainLayout() {
     </div>
   );
 
-  // If user is not authenticated, redirect to login
   if (!isAuthenticated) {
     return null;
   }
 
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* App Bar */}
       <AppBar
         position="fixed"
         sx={{
@@ -144,7 +132,6 @@ export default function MainLayout() {
             {isAdmin ? 'Admin Dashboard' : isRecruiter ? 'Recruiter Dashboard' : 'Candidate Dashboard'}
           </Typography>
           
-          {/* User Profile Menu */}
           <Button 
             color="inherit" 
             onClick={handleMenuOpen}
@@ -180,7 +167,6 @@ export default function MainLayout() {
         </Toolbar>
       </AppBar>
       
-      {/* Mobile Drawer */}
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
@@ -190,7 +176,7 @@ export default function MainLayout() {
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better open performance on mobile
+            keepMounted: true, 
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
@@ -200,7 +186,6 @@ export default function MainLayout() {
           {drawerContent}
         </Drawer>
         
-        {/* Desktop Drawer */}
         <Drawer
           variant="permanent"
           sx={{
@@ -213,7 +198,6 @@ export default function MainLayout() {
         </Drawer>
       </Box>
       
-      {/* Main Content */}
       <Box
         component="main"
         sx={{ 

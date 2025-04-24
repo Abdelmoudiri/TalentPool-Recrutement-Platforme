@@ -32,10 +32,7 @@ import {
   Euro as EuroIcon,
 } from '@mui/icons-material';
 
-/**
- * JobOffersList component
- * Displays a list of job offers with search, filter and pagination
- */
+
 export default function JobOffersList() {
   const { user } = useAuth();
   const [jobOffers, setJobOffers] = useState([]);
@@ -44,19 +41,16 @@ export default function JobOffersList() {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Filter states
   const [filters, setFilters] = useState({
     search: '',
     location: '',
     contractType: '',
     minSalary: '',
-    onlyMine: false, // For recruiters to see only their own job offers
+    onlyMine: false,
   });
   
-  // Check if user is a recruiter
   const isRecruiter = user?.role === 'recruiter';
   
-  // Contract type options
   const contractTypes = [
     { value: '', label: 'Tous les types' },
     { value: 'CDI', label: 'CDI' },
@@ -66,38 +60,33 @@ export default function JobOffersList() {
     { value: 'Freelance', label: 'Freelance' },
   ];
   
-  // Handle filter changes
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
     setFilters((prev) => ({
       ...prev,
       [name]: value,
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1); 
   };
   
-  // Toggle "only mine" filter for recruiters
   const toggleOnlyMine = () => {
     setFilters((prev) => ({
       ...prev,
       onlyMine: !prev.onlyMine,
     }));
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
   };
   
-  // Handle page change
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
   };
   
-  // Fetch job offers with filters
   useEffect(() => {
     const fetchJobOffers = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Prepare query parameters based on filters
         const params = {
           page: currentPage,
           search: filters.search || undefined,
@@ -107,21 +96,16 @@ export default function JobOffersList() {
           user_id: (isRecruiter && filters.onlyMine) ? user.id : undefined,
         };
         
-        // Clean up undefined values
         Object.keys(params).forEach(key => 
           params[key] === undefined && delete params[key]
         );
         
-        // Fetch job offers from API
         const response = await jobOffersAPI.getAll(params);
         
-        // Log response data for debugging
         console.log('Job offers API response:', response.data);
         
-        // Set job offers and pagination info
         const jobOffersData = response.data.job_offers || response.data;
         
-        // Ensure is_active is properly handled
         const processedJobOffers = Array.isArray(jobOffersData) 
           ? jobOffersData.map(offer => ({
               ...offer,
@@ -132,7 +116,7 @@ export default function JobOffersList() {
         console.log('Processed job offers:', processedJobOffers);
         
         setJobOffers(processedJobOffers);
-        setTotalPages(1); // Backend doesn't support pagination yet
+        setTotalPages(1); 
       } catch (err) {
         console.error('Error fetching job offers:', err);
         setError('Impossible de charger les offres d\'emploi.');
@@ -164,7 +148,6 @@ export default function JobOffersList() {
         )}
       </Box>
       
-      {/* Filter section */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
           Filtres
@@ -261,7 +244,6 @@ export default function JobOffersList() {
         </Grid>
       </Paper>
       
-      {/* Results section */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
@@ -281,7 +263,6 @@ export default function JobOffersList() {
         </Paper>
       ) : (
         <>
-          {/* Jobs grid */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {(Array.isArray(jobOffers) ? jobOffers : []).map((jobOffer) => (
               <Grid item xs={12} sm={6} md={4} key={jobOffer.id}>
@@ -294,7 +275,6 @@ export default function JobOffersList() {
             ))}
           </Grid>
           
-          {/* Pagination */}
           {totalPages > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
               <Pagination 
@@ -311,10 +291,7 @@ export default function JobOffersList() {
   );
 }
 
-/**
- * Job Offer Card Component
- * Displays a job offer with its details
- */
+
 function JobOfferCard({ jobOffer, isRecruiter, user }) {
   return (
     <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

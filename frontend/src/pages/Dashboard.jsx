@@ -29,10 +29,7 @@ import {
   ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 
-/**
- * Dashboard page component
- * Displays different content based on user role (candidate or recruiter)
- */
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [statistics, setStatistics] = useState(null);
@@ -40,10 +37,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Check if user is a recruiter
   const isRecruiter = user?.role === 'recruiter';
   
-  // Fetch dashboard data based on user role
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -53,10 +48,8 @@ export default function Dashboard() {
         let stats = {};
         let items = [];
         
-        // Get statistics based on user role
         if (isRecruiter) {
           try {
-            // Recruiter: get job offer statistics
             const statsResponse = await jobOffersAPI.getStatistics();
             stats = statsResponse.data.statistics || statsResponse.data || {};
             console.log('Recruiter stats:', stats);
@@ -70,18 +63,16 @@ export default function Dashboard() {
             };
           }
           
-          // For recruiters, fetch recent applications
           try {
             const recentAppsResponse = await jobApplicationsAPI.getRecentApplications(5);
             items = recentAppsResponse.data.applications || recentAppsResponse.data || [];
             console.log('Recent applications:', items);
           } catch (err) {
             console.error('Error fetching recent applications:', err);
-            items = []; // Initialize with empty array to avoid errors
+            items = []; 
           }
         } else {
           try {
-            // Candidate: get application statistics
             const statsResponse = await jobApplicationsAPI.getStatistics();
             stats = statsResponse.data.statistics || statsResponse.data || {};
             console.log('Candidate stats:', stats);
@@ -95,7 +86,6 @@ export default function Dashboard() {
           }
           
           try {
-            // Get recent job offers
             const recentResponse = await jobOffersAPI.getAll({ limit: 5 });
             items = recentResponse.data.data || recentResponse.data || [];
             console.log('Recent job offers:', items);
@@ -120,7 +110,6 @@ export default function Dashboard() {
     }
   }, [user, isRecruiter]);
 
-  // Render loading state
   if (loading) {
     return (
       <Container sx={{ mt: 4, textAlign: 'center' }}>
@@ -129,7 +118,6 @@ export default function Dashboard() {
     );
   }
   
-  // Render error state
   if (error) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -138,7 +126,6 @@ export default function Dashboard() {
     );
   }
 
-  // Render recruiter dashboard
   if (isRecruiter) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -146,7 +133,6 @@ export default function Dashboard() {
           Tableau de bord recruteur
         </Typography>
         
-        {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard 
@@ -182,7 +168,6 @@ export default function Dashboard() {
           </Grid>
         </Grid>
         
-        {/* Quick Actions */}
         <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
           <Typography variant="h6" gutterBottom>
             Actions rapides
@@ -219,7 +204,6 @@ export default function Dashboard() {
           </Grid>
         </Paper>
         
-        {/* Recent Applications */}
         <Paper elevation={2} sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
@@ -238,9 +222,8 @@ export default function Dashboard() {
           {Array.isArray(recentItems) && recentItems.length > 0 ? (
             <List>
               {recentItems.map((application) => {
-                // Vérifier si l'application a toutes les propriétés nécessaires
                 if (!application || !application.id) {
-                  return null; // Ne pas rendre cet élément s'il est invalide
+                  return null;
                 }
                 
                 return (
@@ -278,14 +261,12 @@ export default function Dashboard() {
     );
   }
   
-  // Render candidate dashboard
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>
         Tableau de bord candidat
       </Typography>
       
-      {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={4}>
           <StatCard 
@@ -313,7 +294,6 @@ export default function Dashboard() {
         </Grid>
       </Grid>
       
-      {/* Quick Actions */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
           Actions rapides
@@ -341,7 +321,6 @@ export default function Dashboard() {
         </Grid>
       </Paper>
       
-      {/* Recent Job Offers */}
       <Paper elevation={2} sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">
@@ -360,7 +339,6 @@ export default function Dashboard() {
         <Grid container spacing={3}>
           {Array.isArray(recentItems) && recentItems.length > 0 ? (
             recentItems.map((jobOffer) => {
-              // Vérifier si l'offre est valide
               if (!jobOffer || !jobOffer.id) {
                 return null;
               }
@@ -417,9 +395,6 @@ export default function Dashboard() {
   );
 }
 
-/**
- * Statistic Card Component
- */
 function StatCard({ title, value, icon, color }) {
   return (
     <Paper
@@ -457,9 +432,6 @@ function StatCard({ title, value, icon, color }) {
   );
 }
 
-/**
- * Get status label based on status code
- */
 function getStatusLabel(status) {
   switch (status) {
     case 'pending':
@@ -475,9 +447,6 @@ function getStatusLabel(status) {
   }
 }
 
-/**
- * Get status color based on status code
- */
 function getStatusColor(status) {
   switch (status) {
     case 'pending':

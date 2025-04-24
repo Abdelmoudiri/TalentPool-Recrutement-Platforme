@@ -58,32 +58,26 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              {/* Auth routes - available only when NOT authenticated */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               
-              {/* Protected routes - require authentication */}
               <Route path="/" element={
                 <ProtectedRoute>
                   <MainLayout />
                 </ProtectedRoute>
               }>
-                {/* Dashboard - common to all users */}
                 <Route index element={<Dashboard />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 
-                {/* Profile page */}
                 <Route path="profile" element={<Profile />} />
                 
-                {/* Admin dashboard - admin only */}
                 <Route path="admin" element={
                   <ProtectedRoute requiredRole="admin">
                     <Admin />
                   </ProtectedRoute>
                 } />
                 
-                {/* Job offers routes */}
                 <Route path="job-offers">
                   <Route index element={<JobOffersList />} />
                   <Route path=":id" element={<JobOfferDetails />} />
@@ -99,14 +93,13 @@ function App() {
                   } />
                 </Route>
                 
-                {/* Applications routes */}
                 <Route path="applications">
                   <Route index element={<ApplicationsList />} />
                   <Route path=":id" element={<ApplicationDetails />} />
                 </Route>
               </Route>
               
-              {/* 404 page */}
+             
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

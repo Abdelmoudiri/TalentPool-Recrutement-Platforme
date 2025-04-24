@@ -34,11 +34,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 
-/**
- * ApplicationDetails component
- * Displays detailed information about a job application
- * Shows different actions based on user role
- */
+
 export default function ApplicationDetails() {
   const { applicationId } = useParams();
   const navigate = useNavigate();
@@ -52,19 +48,15 @@ export default function ApplicationDetails() {
   const [newStatus, setNewStatus] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   
-  // Check if user is a recruiter
   const isRecruiter = user?.role === 'recruiter';
   
-  // Check if the user is the owner of this application (candidate) - with safe access
   const isOwner = application && !isRecruiter && application.user_id === user?.id;
   
-  // Check if the user is the recruiter for this job offer - with safe access
   const isJobRecruiter = application && isRecruiter && 
                         application.job_offer && 
                         typeof application.job_offer === 'object' && 
                         application.job_offer?.user_id === user?.id;
   
-  // Status options
   const statusOptions = [
     { value: 'pending', label: 'En attente' },
     { value: 'reviewing', label: 'En cours de revue' },
@@ -72,21 +64,18 @@ export default function ApplicationDetails() {
     { value: 'rejected', label: 'Refuser' },
   ];
   
-  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Non défini';
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
-  // Fetch application data
   useEffect(() => {
     const fetchApplication = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Ajouter un timeout plus long
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000);
         
@@ -96,17 +85,14 @@ export default function ApplicationDetails() {
           
           console.log('Application API response:', response);
           
-          // Directly use the data returned from the API
           const applicationData = response.data;
           console.log('Application data structure:', applicationData);
-          // Log complet des données brutes pour le débogage
           console.log('Full raw response data:', JSON.stringify(applicationData, null, 2));
           
           if (!applicationData) {
             throw new Error('Données de candidature introuvables');
           }
           
-          // Vérifier si nous avons des données critiques
           if (!applicationData.id) {
             console.error('Missing critical data: application ID');
           }
@@ -115,7 +101,6 @@ export default function ApplicationDetails() {
             console.error('Missing critical data: job_offer_id');
           }
           
-          // Vérifier si nous avons des données critiques
           if (!applicationData.id) {
             console.error('Missing critical data: application ID');
           }
@@ -124,10 +109,8 @@ export default function ApplicationDetails() {
             console.error('Missing critical data: job_offer_id');
           }
           
-          // No need for extra processing, the backend already prepared the data structure
           setApplication(applicationData);
           
-          // Set initial value for status dialog
           setNewStatus(applicationData.status || 'pending');
         } catch (e) {
           clearTimeout(timeoutId);
@@ -136,11 +119,9 @@ export default function ApplicationDetails() {
       } catch (err) {
         console.error('Error fetching application:', err);
         
-        // Add more detailed error info for debugging
         if (err.response) {
           console.error('Error response:', err.response.status, err.response.data);
           
-          // Si l'API a renvoyé un message d'erreur détaillé avec une stack trace, l'afficher dans la console
           if (err.response.data && err.response.data.stack) {
             console.error('Server stack trace:', err.response.data.stack);
           }
@@ -165,14 +146,12 @@ export default function ApplicationDetails() {
     fetchApplication();
   }, [applicationId]);
 
-  // Handle withdrawal confirmation
   const handleWithdraw = async () => {
     try {
       setWithdrawing(true);
       
       await jobApplicationsAPI.withdraw(applicationId);
       
-      // Close dialog and navigate back to applications list
       setWithdrawDialogOpen(false);
       navigate('/applications', { replace: true });
     } catch (err) {
@@ -184,21 +163,18 @@ export default function ApplicationDetails() {
     }
   };
 
-  // Handle status update
   const handleStatusUpdate = async () => {
     try {
       setUpdatingStatus(true);
       
       await jobApplicationsAPI.updateStatus(applicationId, newStatus);
       
-      // Update local state
       setApplication(prev => ({
         ...prev,
         status: newStatus,
         last_status_change: new Date().toISOString(),
       }));
       
-      // Close dialog
       setStatusDialogOpen(false);
     } catch (err) {
       console.error('Error updating application status:', err);
@@ -208,18 +184,15 @@ export default function ApplicationDetails() {
     }
   };
 
-  // Dialog handlers
   const openWithdrawDialog = () => setWithdrawDialogOpen(true);
   const closeWithdrawDialog = () => setWithdrawDialogOpen(false);
   const openStatusDialog = () => setStatusDialogOpen(true);
   const closeStatusDialog = () => setStatusDialogOpen(false);
   
-  // Handle status change in dialog
   const handleStatusChange = (event) => {
     setNewStatus(event.target.value);
   };
 
-  // Render loading state
   if (loading) {
     return (
       <Container sx={{ mt: 4, textAlign: 'center' }}>
@@ -228,7 +201,6 @@ export default function ApplicationDetails() {
     );
   }
   
-  // Render error state
   if (error) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -272,7 +244,6 @@ export default function ApplicationDetails() {
     );
   }
   
-  // Render application not found
   if (!application) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -289,7 +260,6 @@ export default function ApplicationDetails() {
     );
   }
 
-  // Get status label based on status code
   const getStatusLabel = (status) => {
     switch (status) {
       case 'pending':
@@ -305,7 +275,6 @@ export default function ApplicationDetails() {
     }
   };
   
-  // Get status color based on status code
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
@@ -323,7 +292,6 @@ export default function ApplicationDetails() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Back button and actions */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Button 
           startIcon={<ArrowBackIcon />} 
@@ -333,7 +301,6 @@ export default function ApplicationDetails() {
           Retour aux candidatures
         </Button>
         
-        {/* Actions based on user role */}
         {isJobRecruiter && (
           <Button 
             variant="contained" 
@@ -357,7 +324,6 @@ export default function ApplicationDetails() {
         )}
       </Box>
       
-      {/* Application details */}
       <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
@@ -485,7 +451,6 @@ export default function ApplicationDetails() {
         </Grid>
       </Paper>
       
-      {/* Withdraw confirmation dialog */}
       <Dialog open={withdrawDialogOpen} onClose={closeWithdrawDialog}>
         <DialogTitle>Retirer votre candidature ?</DialogTitle>
         <DialogContent>
@@ -507,7 +472,6 @@ export default function ApplicationDetails() {
         </DialogActions>
       </Dialog>
       
-      {/* Status update dialog */}
       <Dialog open={statusDialogOpen} onClose={closeStatusDialog}>
         <DialogTitle>Mettre à jour le statut</DialogTitle>
         <DialogContent>

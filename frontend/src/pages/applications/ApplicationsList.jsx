@@ -44,12 +44,7 @@ import {
   FilterList as FilterListIcon,
 } from '@mui/icons-material';
 
-/**
- * ApplicationsList component
- * Shows different views based on user role:
- * - Candidates see their own applications to different job offers
- * - Recruiters see applications for their job offers
- */
+
 export default function ApplicationsList() {
   const { jobOfferId } = useParams();
   const { user } = useAuth();
@@ -61,17 +56,14 @@ export default function ApplicationsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Filter states
   const [filters, setFilters] = useState({
     search: '',
     status: '',
   });
   
-  // Vérifier le rôle de l'utilisateur
   const isRecruiter = user?.role === 'recruiter';
   const isAdmin = user?.role === 'admin';
   
-  // Status options for filtering
   const statusOptions = [
     { value: '', label: 'Tous les statuts' },
     { value: 'pending', label: 'En attente' },
@@ -80,41 +72,35 @@ export default function ApplicationsList() {
     { value: 'rejected', label: 'Refusé' },
   ];
   
-  // Handle filter changes
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
     setFilters((prev) => ({
       ...prev,
       [name]: value,
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1); 
   };
   
-  // Toggle filters visibility
   const toggleFilters = () => {
     setShowFilters(!showFilters);
   };
   
-  // Handle page change
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
   };
   
-  // Fetch applications with filters
   useEffect(() => {
     const fetchApplications = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Prepare query parameters based on filters
         const params = {
           page: currentPage,
           search: filters.search || undefined,
           status: filters.status || undefined,
         };
         
-        // Clean up undefined values
         Object.keys(params).forEach(key => 
           params[key] === undefined && delete params[key]
         );
@@ -125,30 +111,24 @@ export default function ApplicationsList() {
           const isAdmin = user?.role === 'admin';
           
           if (jobOfferId) {
-            // Fetch applications for a specific job offer (recruiter view)
             response = await jobApplicationsAPI.getJobOfferApplications(jobOfferId);
             
-            // Also fetch the job offer details
             const jobOfferResponse = await jobOffersAPI.getById(jobOfferId);
             setJobOffer(jobOfferResponse.data);
           } else if (isRecruiter || isAdmin) {
-            // Pour les recruteurs et les admins, utiliser récentes applications
             console.log("Récupération des applications récentes pour admin/recruteur");
             response = await jobApplicationsAPI.getRecentApplications(100);
           } else {
-            // Fetch candidate's own applications
             console.log("Récupération des applications du candidat");
             response = await jobApplicationsAPI.getMyApplications();
           }
         } catch (err) {
           console.error('Error during API call:', err);
-          throw err; // Re-throw to be caught by the main try/catch
+          throw err; 
         }
         
-        // Set applications and pagination info
         console.log('API response:', response);
         
-        // Structure de données plus robuste pour gérer les différents formats de réponse
         let applicationData;
         
         if (response.data.data) {
@@ -158,7 +138,6 @@ export default function ApplicationsList() {
         } else if (Array.isArray(response.data)) {
           applicationData = response.data;
         } else {
-          // En dernier recours, essayer de trouver un tableau quelque part
           const possibleArrays = Object.values(response.data).filter(val => Array.isArray(val));
           applicationData = possibleArrays.length > 0 ? possibleArrays[0] : [];
         }
@@ -166,18 +145,15 @@ export default function ApplicationsList() {
         console.log('Parsed application data:', applicationData);
         setApplications(Array.isArray(applicationData) ? applicationData : []);
         
-        // Gestion de la pagination
         if (response.data.meta?.last_page) {
           setTotalPages(response.data.meta.last_page);
         } else {
-          // Si pas de pagination, on met une seule page
           setTotalPages(1);
         }
       } catch (err) {
         console.error('Error fetching applications:', err);
         let errorMessage = 'Impossible de charger les candidatures.';
         
-        // Ajouter des détails de l'erreur pour un meilleur diagnostic
         if (err.response?.data?.message) {
           errorMessage += ` Détail: ${err.response.data.message}`;
         } else if (err.message) {
@@ -185,7 +161,7 @@ export default function ApplicationsList() {
         }
         
         setError(errorMessage);
-        setApplications([]); // S'assurer que nous avons un tableau vide
+        setApplications([]); 
       } finally {
         setLoading(false);
       }
@@ -194,12 +170,10 @@ export default function ApplicationsList() {
     fetchApplications();
   }, [currentPage, filters, isRecruiter, jobOfferId]);
 
-  // Update application status (for recruiters)
   const handleUpdateStatus = async (applicationId, newStatus) => {
     try {
       await jobApplicationsAPI.updateStatus(applicationId, newStatus);
       
-      // Update the local state to reflect the change
       setApplications(prevApplications => 
         prevApplications.map(app => 
           app.id === applicationId 
@@ -209,11 +183,9 @@ export default function ApplicationsList() {
       );
     } catch (err) {
       console.error('Error updating application status:', err);
-      // Show error message or toast notification
     }
   };
 
-  // Get title for the page based on context
   const getPageTitle = () => {
     if (jobOfferId && jobOffer) {
       return `Candidatures pour ${jobOffer.title}`;
@@ -255,7 +227,6 @@ export default function ApplicationsList() {
         </Button>
       </Box>
       
-      {/* Filter section */}
       {showFilters && (
         <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
           <Grid container spacing={2}>
@@ -300,7 +271,6 @@ export default function ApplicationsList() {
         </Paper>
       )}
       
-      {/* Results section */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
@@ -346,16 +316,13 @@ export default function ApplicationsList() {
                     {isRecruiter ? <PersonIcon color="primary" /> : <JobIcon color="primary" />}
                   </ListItemIcon>
                   
-                  {/* Remplacer ListItemText par une structure manuelle */}
                   <div style={{ flexGrow: 1, minWidth: 0 }}>
-                    {/* Primary text */}
                     <Typography variant="subtitle1" component="div">
                       {isRecruiter 
                         ? (application.candidate?.name || application.user?.name || 'Candidat anonyme')
                         : (application.job_offer?.title || 'Offre d\'emploi')}
                     </Typography>
                     
-                    {/* Secondary content - structure explicite sans imbrication <p>/<div> */}
                     <Typography variant="body2" color="text.secondary" component="div">
                       {isRecruiter 
                         ? `Poste: ${application.job_offer?.title || 'Non spécifié'}`
@@ -421,7 +388,6 @@ export default function ApplicationsList() {
         </Paper>
       )}
       
-      {/* Pagination */}
       {totalPages > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <Pagination 
@@ -436,10 +402,7 @@ export default function ApplicationsList() {
   );
 }
 
-/**
- * Status Chip Component
- * Displays the application status with appropriate color
- */
+
 function StatusChip({ status }) {
   let color = 'default';
   let label = status;

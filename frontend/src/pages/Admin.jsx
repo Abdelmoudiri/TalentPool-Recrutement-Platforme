@@ -35,10 +35,7 @@ import {
   Business as BusinessIcon,
 } from '@mui/icons-material';
 
-/**
- * Admin Dashboard Component
- * Displays administrative functions and overview of system data
- */
+
 export default function Admin() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -55,32 +52,24 @@ export default function Admin() {
   
   const [recentJobOffers, setRecentJobOffers] = useState([]);
   
-  // Redirect if not admin
   useEffect(() => {
     if (user && user.role !== 'admin') {
       navigate('/dashboard');
     }
   }, [user, navigate]);
   
-  // Fetch admin statistics and data
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // In a real implementation, these would be API calls to admin endpoints
-        // For now, we're using the existing job offers and applications endpoints
-        
-        // Fetch job offers
         const jobOffersResponse = await jobOffersAPI.getAll();
         const jobOffers = jobOffersResponse.data.job_offers || [];
         
-        // Fetch applications statistics
         const applicationsResponse = await jobApplicationsAPI.getStatistics();
         const applicationStats = applicationsResponse.data.statistics || {};
         
-        // Set mock statistics (in real implementation, these would come from the API)
         setStats({
           usersCount: 25,
           recruitersCount: 10,
@@ -89,7 +78,6 @@ export default function Admin() {
           applicationsCount: applicationStats.total_applications || 0,
         });
         
-        // Set recent data
         setRecentJobOffers(jobOffers.slice(0, 5));
         
       } catch (err) {
@@ -105,7 +93,6 @@ export default function Admin() {
     }
   }, [user]);
   
-  // If still checking authentication, show loading
   if (!user) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
@@ -114,7 +101,6 @@ export default function Admin() {
     );
   }
   
-  // Only admins can access this page
   if (user.role !== 'admin') {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
@@ -143,7 +129,6 @@ export default function Admin() {
         </Box>
       ) : (
         <>
-          {/* Statistics Cards */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={4}>
               <Card elevation={2}>
@@ -203,7 +188,6 @@ export default function Admin() {
             </Grid>
           </Grid>
           
-          {/* Admin Action Buttons */}
           <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
             <Typography variant="h6" gutterBottom>
               Actions administratives
@@ -266,9 +250,7 @@ export default function Admin() {
             </Grid>
           </Paper>
           
-          {/* Recent Activity */}
           <Grid container spacing={3}>
-            {/* Recent Job Offers */}
             <Grid item xs={12} md={6}>
               <Paper elevation={2} sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom>
@@ -320,7 +302,6 @@ export default function Admin() {
               </Paper>
             </Grid>
             
-            {/* Recent Users */}
             <Grid item xs={12} md={6}>
               <Paper elevation={2} sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom>
@@ -328,7 +309,6 @@ export default function Admin() {
                 </Typography>
                 
                 <List sx={{ width: '100%' }}>
-                  {/* These would be real activities in a production app */}
                   <ListItem>
                     <ListItemAvatar>
                       <Avatar>

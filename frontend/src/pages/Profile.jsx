@@ -24,14 +24,11 @@ export default function Profile() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   
-  // Form state
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    // Add other profile fields as needed
   });
   
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -40,17 +37,13 @@ export default function Profile() {
     });
   };
   
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
-      // In a real application, this would call an API endpoint to update the profile
-      // Example: await api.put('/user/profile', formData);
       
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setSuccess(true);
@@ -62,10 +55,8 @@ export default function Profile() {
     }
   };
   
-  // Toggle edit mode
   const toggleEdit = () => {
     if (isEditing) {
-      // Reset form data if canceling
       setFormData({
         name: user?.name || '',
         email: user?.email || '',
@@ -74,7 +65,6 @@ export default function Profile() {
     setIsEditing(!isEditing);
   };
   
-  // Close success notification
   const handleCloseSuccess = () => {
     setSuccess(false);
   };
@@ -154,7 +144,6 @@ export default function Profile() {
                   required
                 />
               </Grid>
-              {/* Add more fields as needed */}
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                   <Button
@@ -188,7 +177,6 @@ export default function Profile() {
                 {user?.email || 'N/A'}
               </Typography>
             </Grid>
-            {/* Add more fields as needed */}
           </Grid>
         )}
       </Paper>
